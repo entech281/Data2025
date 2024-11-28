@@ -1,0 +1,11 @@
+venv
+.pycharm
+.idea
+*.pyc
+.ipynb_checkpoints
+*creds.json
+.streamlit
+data
+duckdb.exe
+.data
+.dlt
