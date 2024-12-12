@@ -5,6 +5,8 @@ import pandas as pd
 
 team_list = cached_data.get_teams()["team_number"].to_list()
 
+team_list.sort()
+
 selected_team = st.selectbox("team", team_list)
 
 opr_data = con.sql(f"SELECT event_key, oprs FROM tba.oprs WHERE team_number = '{selected_team}'").df()
@@ -21,6 +23,7 @@ with first_col2:
 
     with st.container(border=True):
         pass
+    
 
 
 
@@ -30,6 +33,13 @@ match_data = cached_data.get_matches()
 
 event_list = match_data["event_key"].to_list()
 
+temp_list = []
+
+for event in event_list:
+    if not event in temp_list:
+        temp_list.append(event)
+
+event_list = temp_list
 
 selected_event = st.selectbox("event", event_list)
 
