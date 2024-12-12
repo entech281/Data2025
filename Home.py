@@ -1,5 +1,6 @@
 import streamlit as st
-st.set_page_config(layout="wide")
+
+
 
 st.title("281 Scouting")
 
@@ -12,3 +13,4 @@ or branding information
 """ )
 
 st.image("./static/281.png", width=200)
+
