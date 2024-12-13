@@ -1,7 +1,7 @@
 requests
 polars
 tabulate
-streamlit
+streamlit==1.39.0
 numpy
 streamlit-aggrid
 flatten_json
