@@ -1,4 +1,5 @@
 import streamlit as st
+
 st.set_page_config(page_title="281 Scouting", layout="wide", initial_sidebar_state="expanded")
 
 
