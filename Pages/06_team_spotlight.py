@@ -19,6 +19,7 @@ with first_col1:
     with st.container(border=True):
         st.line_chart(opr_data, x="event_key", y="oprs")
 
+
 with first_col2:
 
     with st.container(border=True):
@@ -60,10 +61,12 @@ with second_col1:
         except:
             st.write("Sorry, something went wrong, double check that the selected team participated at the selected event")
 
+
 with second_col2:
 
     with st.container(border=True):
         pass
+
 
 #Opr vs event ranking
 with second_col3:
