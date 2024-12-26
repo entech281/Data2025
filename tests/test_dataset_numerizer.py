@@ -130,7 +130,7 @@ def test_disabling_a_mapping():
     assert_frame_equal( MAPPED,r.transformed)
 
 
-def test_numerizing_matches_using_():
+def test_numerizing_matches_using_skip_columns():
     matches = pd.read_parquet("./tests/data/matches.pq")
     r = numerize_dataset(matches, skip_columns=['key','event_key','comp_level','_dlt_id','_dlt_load_id'])
     assert len(matches) == len(r.transformed)
