@@ -5,6 +5,68 @@ from dataclasses import dataclass
 from typing import Union
 
 
+def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
+
+    column_map = {
+        color + "1":"t1",
+        color + "2":"t2",
+        color + "3":"t3",
+    }
+
+    if color == 'red':
+        color_prefix,other_color_prefix = "red_","blue_"
+    elif color == 'blue':
+        color_prefix, other_color_prefix = "blue_", "red_"
+    else:
+        raise ValueError(f"Unknown color '{color}'")
+
+    for c in columns:
+        if c.startswith(color_prefix):
+            column_map[c] = c.replace(color_prefix,"")
+        elif c.startswith(other_color_prefix):
+            column_map[c] = c.replace(other_color_prefix, "their_")
+        else:
+            # other columns are unmodified
+            pass
+
+    return column_map
+
+
+def unstack_data_from_color(matches: pd.DataFrame) -> pd.DataFrame:
+    """
+    Unstacks match data to be one row per team, rather than one row per match.
+
+    A typical match will have 6 team columns like red1, red2, red3, blue1,blue2,blue3,
+    and fields named like red_? and blue_? for the values in the match.
+
+    If the original dataframe has N rows ( 1 per match) , then this data can be transformed ( unstacked)
+    into a new dataframe having 2*N rows, one per alliance per match,
+
+    instead of red1, red2, red3 we have
+    team1, team2, team3, and instead of red_<whatever> we have simply <whatever>, and
+    other_<whatever> for the other allaiances score.
+
+    This format is MUCH more convienient for OPR analysis.
+
+    :param matches: a dataframe with 6 team columns like red1, red2, red3, blue1,blue2,blue3,
+    and fields named like red_? and blue_? for the values in the match.
+    :return:
+    """
+
+    red_column_map = column_map_for_color(matches,'red')
+    blue_column_map = column_map_for_color(matches, 'blue')
+
+    mapped_cols = set()
+    mapped_cols.update(red_column_map.keys())
+    mapped_cols.update(blue_column_map.keys())
+
+    old_team_columns = ['red1','red2','red3','blue1','blue2','blue3']
+    red_data = matches.rename(columns=red_column_map).drop(columns=['blue1','blue2','blue3'])
+    blue_data = matches.rename(columns=blue_column_map).drop(columns=['red1','red2','red3'])
+    all_data = pd.concat([red_data, blue_data])
+    return all_data
+
+
 def find_single_team_data( matches: pd.DataFrame) -> Union[None,pd.DataFrame]:
     """
     Finds columns that are provided for individual teams.

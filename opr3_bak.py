@@ -45,6 +45,7 @@ def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
     #one row per team performance ( twice the number of matches)
     all_data = pd.concat([red_data,blue_data])
 
+    all_data = unstack_data_from_color(matches)
     all_data['margin'] = all_data['score'] - all_data['their_score']
     #print(all_data)
     #print(list(all_data.columns))
