@@ -134,8 +134,188 @@ def test_numerizing_matches_using_skip_columns():
     matches = pd.read_parquet("./tests/data/matches.pq")
     r = numerize_dataset(matches, skip_columns=['key','event_key','comp_level','_dlt_id','_dlt_load_id'])
     assert len(matches) == len(r.transformed)
-    print(r.transformed.columns)
-    print(json.dumps(r.mapping,indent=4))
+
+    assert {
+        "blue_auto_line_robot1": {
+            "Yes": 1,
+            "No": 0
+        },
+        "blue_auto_line_robot2": {
+            "Yes": 1,
+            "No": 0
+        },
+        "blue_auto_line_robot3": {
+            "Yes": 1,
+            "No": 0
+        },
+        "blue_coop_note_played": {
+            True: 1,
+            False: 0
+        },
+        "blue_coopertition_bonus_achieved": {
+            True: 1,
+            False: 0
+        },
+        "blue_coopertition_criteria_met": {
+            True: 1,
+            False: 0
+        },
+        "blue_end_game_robot1": {
+            "Parked": 0,
+            "None": 1,
+            "StageLeft": 2,
+            "CenterStage": 3,
+            "StageRight": 4
+        },
+        "blue_end_game_robot2": {
+            "Parked": 0,
+            "None": 1,
+            "StageRight": 2,
+            "StageLeft": 3,
+            "CenterStage": 4
+        },
+        "blue_end_game_robot3": {
+            "Parked": 0,
+            "None": 1,
+            "StageRight": 2,
+            "CenterStage": 3,
+            "StageLeft": 4
+        },
+        "blue_ensemble_bonus_achieved": {
+            True: 1,
+            False: 0
+        },
+        "blue_g206_penalty": {
+            True: 1,
+            False: 0
+        },
+        "blue_g408_penalty": {
+            True: 1,
+            False: 0
+        },
+        "blue_g424_penalty": {
+            True: 1,
+            False: 0
+        },
+        "blue_melody_bonus_achieved": {
+            True: 1,
+            False: 0
+        },
+        "blue_mic_center_stage": {
+            True: 1,
+            False: 0
+        },
+        "blue_mic_stage_left": {
+            True: 1,
+            False: 0
+        },
+        "blue_mic_stage_right": {
+            True: 1,
+            False: 0
+        },
+        "blue_trap_center_stage": {
+            True: 1,
+            False: 0
+        },
+        "blue_trap_stage_left": {
+            True: 1,
+            False: 0
+        },
+        "blue_trap_stage_right": {
+            True: 1,
+            False: 0
+        },
+        "red_auto_line_robot1": {
+            "Yes": 1,
+            "No": 0
+        },
+        "red_auto_line_robot2": {
+            "Yes": 1,
+            "No": 0
+        },
+        "red_auto_line_robot3": {
+            "Yes": 1,
+            "No": 0
+        },
+        "red_coop_note_played": {
+            True: 1,
+            False: 0
+        },
+        "red_coopertition_bonus_achieved": {
+            True: 1,
+            False: 0
+        },
+        "red_coopertition_criteria_met": {
+            True: 1,
+            False: 0
+        },
+        "red_end_game_robot1": {
+            "Parked": 0,
+            "None": 1,
+            "StageLeft": 2,
+            "CenterStage": 3,
+            "StageRight": 4
+        },
+        "red_end_game_robot2": {
+            "Parked": 0,
+            "None": 1,
+            "StageRight": 2,
+            "StageLeft": 3,
+            "CenterStage": 4
+        },
+        "red_end_game_robot3": {
+            "Parked": 0,
+            "None": 1,
+            "StageRight": 2,
+            "CenterStage": 3,
+            "StageLeft": 4
+        },
+        "red_ensemble_bonus_achieved": {
+            True: 1,
+            False: 0
+        },
+        "red_g206_penalty": {
+            True: 1,
+            False: 0
+        },
+        "red_g408_penalty": {
+            True: 1,
+            False: 0
+        },
+        "red_g424_penalty": {
+            True: 1,
+            False: 0
+        },
+        "red_melody_bonus_achieved": {
+            True: 1,
+            False: 0
+        },
+        "red_mic_center_stage": {
+            True: 1,
+            False: 0
+        },
+        "red_mic_stage_left": {
+            True: 1,
+            False: 0
+        },
+        "red_mic_stage_right": {
+            True: 1,
+            False: 0
+        },
+        "red_trap_center_stage": {
+            True: 1,
+            False: 0
+        },
+        "red_trap_stage_left": {
+            True: 1,
+            False: 0
+        },
+        "red_trap_stage_right": {
+            True: 1,
+            False: 0
+        }
+    } == r.mapping
+
 
 
 
