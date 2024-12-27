@@ -119,6 +119,25 @@ def get_event_oprs(event_key):
     df['event_key'] = event_key
     return df.to_dict('records')
 
+def get_event_scoring_components(event_key):
+
+    r = _get("/event/{event_key}/coprs".format(event_key=event_key))
+    if r is None:
+        return []
+
+    result = []
+    # this is a weird one: the root is a dict of componnents, with a dict of teams under each
+    for component_key,team_dict in r.items():
+        for team_key,val in team_dict.items():
+            result.append({
+                'event_key': event_key,
+                'component': component_key,
+                'team_key': team_key,
+                'team_number': team_number_from_key(team_key),
+                'component_val': val
+            })
+
+    return result
 
 def get_rankings_for_district(district_key):
     r = _get(f'/district/{district_key}/rankings')
@@ -177,5 +196,6 @@ if __name__ == '__main__':
     #print ( json.dumps(get_rankings_for_district(),indent=4))''
     #print(json.dumps(get_event_rankings('2025schar'), indent=4))
     #r=get_match_predictions_for_event('2024gacmp')
-    r2=get_rankings_for_district('2024pch')
+    #r2=get_rankings_for_district('2024pch')
+    r2=get_event_scoring_components('2024gacmp')
     print(json.dumps(r2,indent=4))

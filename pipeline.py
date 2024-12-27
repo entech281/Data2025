@@ -47,6 +47,10 @@ def event_predictions_source(event_list):
     for event_name in event_list:
         yield from tba.get_match_predictions_for_event(event_name)
 
+@dlt.resource(table_name='event_scoring_components', write_disposition='merge', primary_key=['team_key','event_key','component'])
+def event_scoring_components_source(event_list):
+    for event_name in event_list:
+        yield from tba.get_event_scoring_components(event_name)
 
 def sync():
 
@@ -70,6 +74,10 @@ def sync():
 
     logger.info("Match Predictions....")
     load_info = pipeline.run(event_predictions_source(event_list))
+    logger.info(load_info)
+
+    logger.info("Scoring Components....")
+    load_info = pipeline.run(event_scoring_components_source(event_list))
     logger.info(load_info)
 
     logger.info("Rankings...")
