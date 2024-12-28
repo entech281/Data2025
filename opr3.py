@@ -41,13 +41,10 @@ def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
 
     red_data = matches.rename(columns=red_col_map)
     blue_data = matches.rename(columns=blue_col_map)
-    print("Automapped=",automapped_fields)
-    #one row per team performance ( twice the number of matches)
-    all_data = pd.concat([red_data,blue_data])
 
+    all_data = pd.concat([red_data,blue_data])
     all_data['margin'] = all_data['score'] - all_data['their_score']
-    #print(all_data)
-    #print(list(all_data.columns))
+
 
     m=[]
     for idx,match in all_data.iterrows():
@@ -58,8 +55,8 @@ def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
             else:
                 r.append(0)
         m.append(r)
-
     m_m = np.matrix(m)
+
     #left side values are all the columsn in the map, MINUS a key few
     computed_cols = ['margin','their_score'] + automapped_fields
 
@@ -71,8 +68,6 @@ def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
 
     pseudo_inverse = np.linalg.pinv(m_m)
     computed = np.matmul(pseudo_inverse,c_c)
-    #print("Solution")
-    #print(computed)
 
     results_2 = pd.DataFrame(computed,columns=computed_cols)
     teams_2 = pd.DataFrame(team_list,columns=['team_id'])
@@ -93,10 +88,50 @@ def get_match_data():
     matches = pd.read_parquet("./tests/data/matches.pq")
     return matches
 
-if __name__  == '__main__':
+
+def test_trying_avoiding_a_loop():
+
+    teams = pd.DataFrame({'teams':[281,1319,4451,8875,9000]})
+    team_numbers = teams['teams']
+    matches = pd.DataFrame({
+        't1' : [ 281, 1319, 281, 4451,1319],
+        't2' : [ 4451, 4451,1319,281,281],
+        't3': [ 8875, 281, 9000, 4451, 9000],
+        'score': [20,30,40,10,50 ]
+    })
+    team_part = matches[['t1','t2','t3']]
+    print("Team Numbers")
+    print(team_part)
+    all_teams = team_part.melt(var_name='Alliance', value_name='Team').drop(columns='Alliance')
+    flattened = team_part.stack().reset_index(level=1, drop=True)
+    print("Flattened")
+    print(flattened)
+
+    # Step 2: get dummies creates a variable column with a true/false, for each distinct value in a range,
+    # w
+    print("Dummies")
+    print(pd.get_dummies(flattened))
+
+    binary_matrix = pd.get_dummies(flattened).groupby(level=0).sum()
+    print("Step1")
+    print(binary_matrix)
+
+    # Step 3: Reindex the columns to include all team numbers and ensure integer type
+    binary_matrix = binary_matrix.reindex(columns=team_numbers, fill_value=0).astype(int)
+    print("Result")
+    print(binary_matrix)
+    m = np.matrix(binary_matrix)
+    print("Matrix")
+    print(m)
+
+def real():
     matches = get_match_data()
-    #print(matches)
+    print(matches)
     r = calculate_opr_ccwm_dpr(matches)
     print("Results:")
     print(r)
-    r.to_csv('out.csv',index=False)
+
+if __name__  == '__main__':
+    real()
+
+

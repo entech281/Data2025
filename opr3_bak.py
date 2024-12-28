@@ -45,7 +45,6 @@ def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
     #one row per team performance ( twice the number of matches)
     all_data = pd.concat([red_data,blue_data])
 
-    all_data = unstack_data_from_color(matches)
     all_data['margin'] = all_data['score'] - all_data['their_score']
     #print(all_data)
     #print(list(all_data.columns))
@@ -95,9 +94,40 @@ def get_match_data():
     return matches
 
 if __name__  == '__main__':
-    matches = get_match_data()
+    #matches = get_match_data()
     #print(matches)
-    r = calculate_opr_ccwm_dpr(matches)
-    print("Results:")
-    print(r)
-    r.to_csv('out.csv',index=False)
+    #r = calculate_opr_ccwm_dpr(matches)
+    #print("Results:")
+    #print(r)
+    #r.to_csv('out.csv',index=False)
+
+    teams = pd.DataFrame({'teams':[281,1319,4451]})
+    team_numbers = teams['teams']
+    matches = pd.DataFrame({
+        't1' : [ 281, 1319, 281, 451],
+        't2' : [ 4451, 4451,1319,281],
+        'score': [20,30,40,10 ]
+    })
+    team_part = matches[['t1','t2']]
+    print("Team Numbers")
+    print(team_part)
+    all_teams = team_part.melt(var_name='Alliance', value_name='Team').drop(columns='Alliance')
+    flattened = team_part.stack().reset_index(level=1, drop=True)
+    print("Flattened")
+    print(flattened)
+
+    # Step 2: Create one-hot encoding for all teams in the flattened column
+    print("Dummies")
+    print(pd.get_dummies(flattened))
+
+    binary_matrix = pd.get_dummies(flattened).groupby(level=0).sum()
+    print("Step1")
+    print(binary_matrix)
+
+    # Step 3: Reindex the columns to include all team numbers and ensure integer type
+    binary_matrix = binary_matrix.reindex(columns=team_numbers, fill_value=0).astype(int)
+    print("Result")
+    print(binary_matrix)
+    m = np.matrix(binary_matrix)
+    print("Matrix")
+    print(m)
