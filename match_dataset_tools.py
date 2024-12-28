@@ -4,6 +4,13 @@ import re
 from dataclasses import dataclass
 from typing import Union
 
+def drop_columns_with_word_in_column_name(df: pd.DataFrame , keyword:str) -> pd.DataFrame:
+
+    cols_to_drop = []
+    for c in df.columns:
+        if c.find(keyword) >= 0:
+            cols_to_drop.append(c)
+    return df.drop(columns=cols_to_drop)
 
 def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
 
