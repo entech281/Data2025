@@ -58,8 +58,10 @@ def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
 
 
 def get_match_data():
-    matches = con.sql("select * from frc_2025.tba.matches where event_key = '2024gacmp'").df()
-    return matches[ ['red1','red2','red3','blue1','blue2','blue3','red_score','blue_score']]
+    #matches = con.sql("select * from frc_2025.tba.matches where event_key = '2024gacmp'").df()
+    #return matches[ ['red1','red2','red3','blue1','blue2','blue3','red_score','blue_score']]
+    matches = pd.read_parquet("./tests/data/matches.pq")
+    return matches
 
 
 if __name__  == '__main__':
