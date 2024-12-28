@@ -5,7 +5,7 @@ venv
 .ipynb_checkpoints
 *creds.json
 .streamlit
-data
+/data
 duckdb.exe
 .data
 .dlt
