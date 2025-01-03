@@ -1,7 +1,25 @@
 import pandas as pd
-from match_dataset_tools import find_single_team_data,unstack_data_from_color
+from match_dataset_tools import find_single_team_data,unstack_data_from_color,drop_columns_with_word_in_column_name
 from pandas.testing import assert_frame_equal
 
+
+def test_drop_cols_with_word_in_column_with_match():
+    d = pd.DataFrame({
+        'a': [ 1 , 0, 2],
+        'bfoo': [ True, False,False],
+        'c' : [ 'foo', 'foo','bar']
+    })
+    d2 = drop_columns_with_word_in_column_name(d,'foo')
+    assert ['a','c'] == list(d2.columns)
+
+def test_drop_cols_with_word_in_column_without_match():
+    d = pd.DataFrame({
+        'a': [ 1 , 0, 2],
+        'bfoo': [ True, False,False],
+        'c' : [ 'foo', 'foo','bar']
+    })
+    d2 = drop_columns_with_word_in_column_name(d,'foobar')
+    assert ['a','bfoo','c'] == list(d2.columns)
 
 def test_extracting_single_team_data():
     matches = pd.read_parquet("./tests/data/matches.pq")

@@ -1,7 +1,8 @@
 import pandas as pd
 #from motherduck import con
 import numpy as np
-from match_dataset_tools import unstack_data_from_color
+from tabulate import tabulate
+from match_dataset_tools import unstack_data_from_color,drop_columns_with_word_in_column_name
 def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
 
 
@@ -130,9 +131,13 @@ def real():
     print(matches)
     r = calculate_opr_ccwm_dpr(matches)
     print("Results:")
-    print(r)
+
+    r = drop_columns_with_word_in_column_name(r,'threshold')
+    r.to_csv('all_the_things.csv',float_format='%.2f')
+    print(tabulate(r, headers='keys', tablefmt='psql', floatfmt=".2f"))
 
 if __name__  == '__main__':
+    pd.set_option('display.max_columns',None)
     real()
 
 
