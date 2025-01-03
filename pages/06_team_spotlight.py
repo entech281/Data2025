@@ -9,22 +9,20 @@ team_list.sort()
 
 selected_team = st.selectbox("team", team_list)
 
-<<<<<<< HEAD
+
 # TO DO:
 # Use JOIN to make these all one sql query
-=======
 
->>>>>>> 302f1cf2e5e72ef2b9255a6b81c800c27645c34f
 opr_data = con.sql("SELECT event_key, oprs FROM tba.oprs WHERE team_number = % s" % selected_team).df()
 rank_data = con.sql("SELECT event_key, rank FROM tba.event_rankings WHERE team_number = % s" % selected_team).df()
 
 
 
-<<<<<<< HEAD
+
 first_col1, first_col2, first_col3 = st.columns(2)
-=======
+
 first_col1, first_col2 = st.columns(2)
->>>>>>> 302f1cf2e5e72ef2b9255a6b81c800c27645c34f
+
 
 with first_col1:
 
