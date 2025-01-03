@@ -1,10 +1,10 @@
 # calculates opr from a set of matches
-import polars as pl
-import motherduck as md
+import pandas as pd
+from motherduck import con
 import numpy as np
 
 
-def calculate_opr_ccwm_dpr ( matches:pl.DataFrame) -> pl.DataFrame:
+def calculate_opr_ccwm_dpr ( matches:pd.DataFrame) -> pd.DataFrame:
 
     team_list = set(
         matches.select([
@@ -66,6 +66,7 @@ def calculate_opr_ccwm_dpr ( matches:pl.DataFrame) -> pl.DataFrame:
     return results
 
 if __name__  == '__main__':
-    matches = md.get_matches().filter(pl.col('event_id') == 53463)
+    #matches = md.get_matches().filter(pl.col('event_id') == 53463)
+    matches = con.sql("select * from frc_2025.tba.matches where event_key = '2024gacmp'").pd()
     r = calculate_opr_ccwm_dpr(matches)
     print(r)

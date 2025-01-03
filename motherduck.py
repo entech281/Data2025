@@ -1,5 +1,4 @@
 import duckdb
-import polars as pl
 import streamlit as st
 
 ACCESS_TOKEN=st.secrets['motherduck']['token']

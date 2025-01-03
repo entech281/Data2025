@@ -14,8 +14,7 @@ def set_logger(new_logger):
     logger = new_logger
 
 DATE_FORMAT="%Y-%m-%d"
-#TBA_ACCESS_TOKEN=st.secrets['tba']['auth_key']
-TBA_ACCESS_TOKEN='fGDyOOUMbLSkaoccMXV22KFXu1XdU5kK2VuKVAJEZq5cTBBN2dKFQEBstoUCPWhE'
+TBA_ACCESS_TOKEN=st.secrets['tba']['auth_key']
 TBA_API_ROOT = 'https://www.thebluealliance.com/api/v3/'
 DISTRICT_KEY='2025fsc'
 DISTRICT_EVENTS=[ '2025schar','2025sccha', '2025sccmp' ]
@@ -32,6 +31,12 @@ def get_fields(from_dict:dict, fields:list[str])-> dict:
             r[f] = from_dict[f]
     return r
 
+def flatten_with_color_prefix(prefix, original:dict):
+    r = {}
+    for k,v in original.items():
+        new_key = prefix + k
+        r[new_key] = v
+    return r
 
 def _get(url, result_type='json'):
 
@@ -114,13 +119,67 @@ def get_event_oprs(event_key):
     df['event_key'] = event_key
     return df.to_dict('records')
 
+def get_event_scoring_components(event_key):
 
-def get_rankings_for_district():
-    rankings = _get(f'/district/{DISTRICT_KEY}/rankings')
-    if rankings is not None:
-        return rankings.json()
-    else:
+    r = _get("/event/{event_key}/coprs".format(event_key=event_key))
+    if r is None:
         return []
+
+    result = []
+    # this is a weird one: the root is a dict of componnents, with a dict of teams under each
+    for component_key,team_dict in r.items():
+        for team_key,val in team_dict.items():
+            result.append({
+                'event_key': event_key,
+                'component': component_key,
+                'team_key': team_key,
+                'team_number': team_number_from_key(team_key),
+                'component_val': val
+            })
+
+    return result
+
+def get_rankings_for_district(district_key):
+    r = _get(f'/district/{district_key}/rankings')
+    if r is None:
+        return []
+
+    def flatten_ranking(rec):
+        rec= get_fields(rec, ['point_total','rank','rookie_bonus','team_key'])
+        rec['team_number'] = team_number_from_key(rec['team_key'])
+        rec['district_key'] = district_key
+        return rec
+
+    return [ flatten_ranking(x) for x in r]
+
+
+def get_match_predictions_for_event(event_key):
+    r = _get(f"/event/{event_key}/predictions")
+    if r is None:
+        return []
+
+
+    def flatten_prediction(match_key,rec):
+        r = get_fields(rec, ['winning_alliance','prob'])
+        r["match_key"] = match_key
+        r["event_key"] = event_key
+        r.update(flatten_with_color_prefix("blue_", rec["blue"]))
+        r.update(flatten_with_color_prefix("red_", rec["red"]))
+        return r
+
+    match_predictions = {}
+
+    if "playoff" in r["match_predictions"]:
+        match_predictions.update(r['match_predictions']['playoff'])
+
+    if "qual" in r["match_predictions"]:
+        match_predictions.update(r['match_predictions']['qual'])
+
+    result = []
+    for k,v in match_predictions.items():
+        result.append( flatten_prediction(k,v) )
+
+    return result
 
 
 def setup_logging():
@@ -136,5 +195,7 @@ if __name__ == '__main__':
     setup_logging()
     #print ( json.dumps(get_rankings_for_district(),indent=4))''
     #print(json.dumps(get_event_rankings('2025schar'), indent=4))
-    r=get_event_rankings('2025schar')
-    print(r)
+    #r=get_match_predictions_for_event('2024gacmp')
+    #r2=get_rankings_for_district('2024pch')
+    r2=get_event_scoring_components('2024gacmp')
+    print(json.dumps(r2,indent=4))
