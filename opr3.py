@@ -1,8 +1,9 @@
 import pandas as pd
-from motherduck import con
+#from motherduck import con
 import numpy as np
 from match_dataset_tools import unstack_data_from_color
 def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
+
 
     column_map = {
         color + "1":"t1",

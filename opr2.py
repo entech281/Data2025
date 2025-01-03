@@ -1,49 +1,70 @@
 import pandas as pd
-from motherduck import con
+#from motherduck import con
 import numpy as np
+import json
+from match_dataset_tools import unstack_data_from_color
+def column_map(columns:list,color:str) -> ( dict[str,str],list[str]):
+
+    column_color = {
+        color + '1':'team1',
+        color + '2':'team2',
+        color + '3':'team3',
+    }
+
+    mapped_fields = set()
+    if color == 'red':
+        column_color['blue_score'] = 'opp_score'
+
+    if color == 'blue':
+        column_color['red_score'] = 'opp_score'
+
+    pre_color = color + '_'
+
+    for i in columns:
+        if i.startswith(pre_color):
+            computed_field = i.replace(pre_color,'')
+            mapped_fields.add(computed_field)
+            column_color[i] = computed_field
+
+    return column_color, list(mapped_fields)
 
 
 def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
 
     #get the unique list of teams
     team_list = pd.unique(matches[['red1','red2','red3','blue1','blue2','blue3']].values.ravel('K'))
-    print("Unique Teams: One column, num rows= Nteams ")
+    #print("Unique Teams: One column, num rows= Nteams ")
 
+    int_columns = matches.select_dtypes(include='number').columns
+    r_columns, mapped_fields = column_map(int_columns,'red')
+    b_columns, mapped_fields = column_map(int_columns,'blue')
+
+    r_data = matches.rename(columns=r_columns)
+    b_data = matches.rename(columns=b_columns)
+
+    all_data = pd.concat([r_data,b_data])
+    all_data['diff'] = all_data['score'] - all_data['opp_score']
     M=[]
-    for idx,match in matches.iterrows():
+    for idx, match in all_data.iterrows():
         r=[]
         for team in team_list:
-            if match['red1'] == team or match['red2'] == team or match['red3'] == team:
+            if match['team1'] == team or match['team2'] == team or match['team3'] == team:
                 r.append(1)
             else:
                 r.append(0)
         M.append(r)
 
-        b = []
-        for team in team_list:
-            if match['blue1'] == team or match['blue2'] == team or match['blue3'] == team:
-                b.append(1)
-            else:
-                b.append(0)
-        M.append(b)
-
-    combined = []
-    for index,match in matches.iterrows():
-        combined.extend([
-            [match['red_score'],match['red_score'] - match['blue_score']],
-            [match['blue_score'],match['blue_score'] - match['red_score'] ]
-        ])
-
     m_m = np.matrix(M)
-    c_c = np.matrix(combined)
+
+    rem_columns = ['diff','opp_score'] + mapped_fields
+
+    ez_side = all_data[rem_columns]
+    c_c = np.matrix(ez_side)
 
     pseudo_inverse = np.linalg.pinv(m_m)
     all = np.matmul(pseudo_inverse,c_c)
 
-    def get_matrix_into_one_list(m,):
-        return np.reshape(m,(1,-1)).tolist()[0]
-
-    results_2 = pd.DataFrame(all,columns=['opr','ccwm'])
+    results_2 = pd.DataFrame(all,columns=list(ez_side))
     teams_2 = pd.DataFrame(team_list,columns=['team_id'])
     results_all = pd.concat([teams_2, results_2], axis=1)
 
@@ -54,7 +75,8 @@ def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
         19      343  39.377108  11.797834
         ....    
     """
-    return results_all.sort_values(by=['opr'],ascending=False)
+    #return results_all.sort_values(by=['opr'],ascending=False)
+    return results_all.sort_values(by=['opp_score'],ascending=False)
 
 
 def get_match_data():
