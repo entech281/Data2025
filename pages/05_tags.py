@@ -2,7 +2,11 @@ import streamlit as st
 from motherduck import con
 import cached_data
 import pandas as pd
+#Is this import needed...I'm leaving it cause all
+#I'm doing right now is resolving merge conflicts
+#But we should probably check this...
 from psycopg2 import sql
+
 
 st.title("This is a tags page")
 st.subheader("It will do stuff")

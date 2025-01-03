@@ -13,6 +13,5 @@ pytest
 toml
 streamlit_extras
 ordered_set
-polars
 dlt[motherduck]
 great_tables
