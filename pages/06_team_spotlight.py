@@ -9,7 +9,9 @@ team_list.sort()
 
 selected_team = st.selectbox("team", team_list)
 
-opr_data = con.sql(f"SELECT event_key, oprs FROM tba.oprs WHERE team_number = '{selected_team}'").df()
+
+opr_data = con.sql("SELECT event_key, oprs FROM tba.oprs WHERE team_number = % s" % selected_team).df()
+
 
 
 first_col1, first_col2 = st.columns(2)
@@ -18,6 +20,9 @@ with first_col1:
 
     with st.container(border=True):
         st.line_chart(opr_data, x="event_key", y="oprs")
+
+
+
 
 with first_col2:
 
@@ -60,10 +65,12 @@ with second_col1:
         except:
             st.write("Sorry, something went wrong, double check that the selected team participated at the selected event")
 
+
 with second_col2:
 
     with st.container(border=True):
         pass
+
 
 #Opr vs event ranking
 with second_col3:
