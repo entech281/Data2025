@@ -16,7 +16,7 @@ def create_schema():
 
     con.sql("""
         create or replace table scouting.tags (
-            team_number INTEGER PRIMARY KEY,
+            team_number INTEGER,
             tag_id INTEGER,
             scouter_name varchar,
             description varchar,
