@@ -1,6 +1,5 @@
 import streamlit as st
 from motherduck import con
-from motherduck import con2
 import cached_data
 import pandas as pd
 
