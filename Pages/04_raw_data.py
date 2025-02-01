@@ -1,6 +1,6 @@
 import streamlit as st
-from motherduck import con
-import cached_data
+
+import opr3
 
 st.set_page_config(layout="wide")
 

@@ -51,7 +51,15 @@ def sync():
         dataset_name='tba'
     )
 
-    event_list =  ['2024sccha','2024gacmp','2024sccha']
+
+    #for 2025 event_list = [ '2025schar','2025sccha', '2025sccmp' ]
+    event_list =  ['2025fsc','2024gacmp']
+    # sccha
+    # sccmp
+    # schar
+    # 2025schar
+    # 2025sccmp
+
 
     logger.info("Teams...")
     load_info = pipeline.run(sync_teams_source(event_list))
