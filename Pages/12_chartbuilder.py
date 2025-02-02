@@ -13,7 +13,9 @@ st.title("chart Kitchen")
 @st.cache_resource
 def get_pyg_renderer() -> "StreamlitRenderer":
     df =opr3.fake_analyze()
+    df['team_id'] = df['team_id'].astype(str)
     # If you want to use feature of saving chart config, set `spec_io_mode="rw"`
+    #df = pd.melt(df, id_vars=['team_id','batch'],var_name='attribute',value_name='weighted_score')
     return StreamlitRenderer(df, spec="./gw_config.json", spec_io_mode="rw")
 
 
