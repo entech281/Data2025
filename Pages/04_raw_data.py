@@ -1,7 +1,5 @@
 import streamlit as st
-
-import opr3
-
+import cached_data
 st.set_page_config(layout="wide")
 
 display_config = {

@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 import streamlit as st
+from streamlit_extras.row import row
 import jobs
 
 HORIZONTAL_STYLE = """
@@ -77,10 +78,17 @@ def add_L1_success():
 
 st.header("Scouting Form")
 with st.form("match_record"):
+
+    #this works, but the fields still verticalize on a phone
+    #row1 = row(3,vertical_align="center")
+    #row1.text_input("scout",max_chars=2)
+    #row1.selectbox("Match",("Q1","Q2","Q3","Q4"))
+    #row1.selectbox("Team", ("281", "4451", "342", "343"))
+
     with st_horizontal():
-        st.text_input("scout",max_chars=2)
-        st.selectbox("Match",("Q1","Q2","Q3","Q4"))
-        st.selectbox("Team", ("281", "4451", "342", "343"))
+        st.text_input("scout",max_chars=2,key='aa')
+        st.selectbox("Match",("Q1","Q2","Q3","Q4"),key='ab')
+        st.selectbox("Team", ("281", "4451", "342", "343"),key='ac')
     st.divider()
 
     with st_horizontal():

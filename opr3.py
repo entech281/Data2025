@@ -4,6 +4,7 @@ import sys
 import numpy as np
 from scipy.stats import zscore
 from tabulate import tabulate
+import time
 from match_dataset_tools import unstack_data_from_color,drop_columns_with_word_in_column_name,add_zscores,find_columns_with_suffix
 def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
 
@@ -28,7 +29,7 @@ def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
             automapped_fields.add(computed_field)
             column_map[c] = computed_field
 
-    print("Col map=",column_map)
+    #print("Col map=",column_map)
     return column_map,list(automapped_fields)
 
 def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
@@ -66,8 +67,8 @@ def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
 
     #left_side = all_data[['our_score','their_score','margin']]
     left_side = all_data[computed_cols]
-    print("left Side")
-    print(left_side)
+    #print("left Side")
+    #print(left_side)
     c_c = np.matrix(left_side)
 
     pseudo_inverse = np.linalg.pinv(m_m)
@@ -104,18 +105,21 @@ def add_zscores(df:pd.DataFrame, cols:list[str]):
     return new_df
 
 
-def real():
-    matches = get_match_data()
-
+def analyze_ccm(df):
+    s = time.time()
+    matches = df
+    #print(f"Read data: {time.time()-s} sec")
     r = calculate_opr_ccwm_dpr(matches)
 
     r = drop_columns_with_word_in_column_name(r,'threshold')
-    r.to_csv('all_the_things.csv',float_format='%.2f')
+    #r.to_csv('all_the_things.csv',float_format='%.2f')
 
     cols_to_use = remove_from_list(r.columns, [ 'team_id'])
     with_z = add_zscores(r, cols_to_use)
-    c = find_columns_with_suffix(with_z,'z')
-    with_z['weight']= 0
+
+    #print(with_z.columns)
+    #c = find_columns_with_suffix(with_z,'z')
+    #with_z['weight']= 0
 
     #weights = pd.DataFrame([0] * len(c), index=c).T
     #weights['auto_speaker_note_points_z'] = 0.1
@@ -126,23 +130,77 @@ def real():
     #   if c.endswith("_z"):
     #     with_z[c +"_w" ] = with_z[c] * weights.iloc[0][c]
 
-    weighted_columns = find_columns_with_suffix(with_z,"_z") +[ "weight"]
+    weighted_columns = find_columns_with_suffix(with_z,"_z") +[ "team_id"]
     #print(weighted_columns)
     r = with_z[weighted_columns]
-    weight_col= r.pop('weight')
-    r.insert(0, 'weight', weight_col)
-    r = r.T
-    print(r)
-    return r.T
-    #print(tabulate(with_z[[
-    #    'auto_speaker_note_points_z',
-    #    'end_game_total_stage_points_z',
-    #    'auto_speaker_note_points_z_w',
-    #    'end_game_total_stage_points_z_w',
-    #]], headers='keys', tablefmt='psql', floatfmt=".2f"))
+    #weight_col= r.pop('weight')
+    #r.insert(0, 'weight', weight_col)
+    #r = r.T
+    #print(r)
+
+    #print(r.columns)
+    #print(tabulate(r[r.columns[-4:]], headers='keys', tablefmt='psql', floatfmt=".2f"))
+    return r
+
+def calculate_match_by_match(all_data):
+    """
+    Calculate team distributions over time, grabbing incrementally larger groups of matches
+    :return:
+    """
+    batch = 0
+    batch_size = 5
+    result_dfs = []
+
+    while batch < len(all_data):
+        batch += batch_size
+        print(f"Computing, batch size={batch}")
+        r = analyze_ccm(all_data.head(batch))
+        r['batch'] = batch
+        result_dfs.append(r)
+
+    return  pd.concat(result_dfs)
+
+def fake_analyze():
+    d = get_match_data()
+    r = calculate_match_by_match(get_match_data())
+    return r
+
+def latest_match():
+    return analyze_ccm(get_match_data())
+
+def test_select():
+    original = latest_match()
+    #print( df.columns)
+    selected_metrics = ['score_z','foul_count_z']
+    weights=[1.0,-0.1]
+    selected_metrics = original[selected_metrics]
+    weighted = selected_metrics.mul(weights)
+    weighted['total_z'] = weighted.sum(axis=1)
+    #print(weighted)
+    all = pd.concat([original[['team_id']], weighted],axis=1)
+    all = all.sort_values(by='total_z', ascending=False)
+    all['rank'] = all['total_z'].rank(ascending=False)
+    all = pd.melt(all,id_vars=['team_id'])
+    print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
+
+
+def matches_over_time():
+    return calculate_match_by_match(get_match_data())
 
 if __name__  == '__main__':
-    pd.set_option('display.max_columns',None)
-    real()
+    all = latest_match()
+    all = all.reset_index()
+    all = all.set_index('team_id')
+    all = all.T
+    print(all.columns)
+    print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
+    #pd.set_option('display.max_columns',None)
+    #test_select()
+    #start = time.time()
+    #d = get_match_data()
+    #r = calculate_match_by_match(get_match_data())
+    #r.to_csv('all_the_things.csv', float_format='%.2f')
+    #print (r.shape)
+    #print ( f"Total time: {time.time()-start} sec") #0.32 sec on my laptop for all matches, read off disk=0.1
 
 
