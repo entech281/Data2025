@@ -17,3 +17,6 @@ def get_rankings() -> pl.DataFrame:
 @cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
 def get_teams() -> pl.DataFrame:
     return con.sql("select * from tba.teams").df();
+    
+    
+

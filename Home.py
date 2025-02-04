@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+from cached_data import get_matches, get_rankings, get_teams
 st.set_page_config(layout="wide")
 
 st.title("281 Scouting")
@@ -12,3 +14,5 @@ or branding information
 """ )
 
 st.image("./static/281.png", width=200)
+
+
