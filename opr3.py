@@ -7,8 +7,16 @@ from tabulate import tabulate
 import time
 from match_dataset_tools import unstack_data_from_color,drop_columns_with_word_in_column_name,add_zscores,find_columns_with_suffix
 def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
+    """
+    Creates a mapping of column names based on the specified color.
 
+    Args:
+        columns (list): List of column names.
+        color (str): The color to base the mapping on ('red' or 'blue').
 
+    Returns:
+        tuple: A dictionary mapping original column names to new names, and a list of automatically mapped fields.
+    """
     column_map = {
         color + "1":"t1",
         color + "2":"t2",
@@ -32,8 +40,17 @@ def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
     #print("Col map=",column_map)
     return column_map,list(automapped_fields)
 
-def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
+def calculate_opr_ccwm_dpr(matches: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculates OPR (Offensive Power Rating), CCWM (Calculated Contribution to Winning Margin),
+    and DPR (Defensive Power Rating) for teams based on match data.
 
+    Args:
+        matches (pd.DataFrame): DataFrame containing match data with red/blue alliance teams and scores
+
+    Returns:
+        pd.DataFrame: Sorted DataFrame with team statistics including OPR, CCWM, DPR calculations
+    """
     #get the unique list of teams
     team_list = pd.unique(matches[['red1','red2','red3','blue1','blue2','blue3']].values.ravel('K'))
     #print("Unique Teams: One column, num rows= Nteams ")
@@ -88,24 +105,59 @@ def calculate_opr_ccwm_dpr(matches:pd.DataFrame) -> pd.DataFrame:
     return results_all.sort_values(by=['score'],ascending=False)
 
 
-def get_match_data():
+def get_match_data() -> pd.DataFrame:
+    """
+    Retrieves match data from parquet file for analysis.
+
+    Returns:
+        pd.DataFrame: DataFrame containing match data
+    """
     #matches = con.sql("select * from frc_2025.tba.matches where event_key = '2024gacmp'").df()
     matches = pd.read_parquet("./tests/data/matches.pq")
     return matches
 
 
-def remove_from_list (original:list[str],to_remove:list[str] )-> list[str]:
+def remove_from_list (original:list[str],to_remove:list[str] ) -> list[str]:
+    """
+    Removes specified elements from a list.
+
+    Args:
+        original (list[str]): Original list of strings
+        to_remove (list[str]): List of strings to remove
+
+    Returns:
+        list[str]: New list with specified elements removed
+    """
     return list( set(original) - set(to_remove))
 
 
-def add_zscores(df:pd.DataFrame, cols:list[str]):
+def add_zscores(df:pd.DataFrame, cols:list[str]) -> pd.DataFrame:
+    """
+    Adds z-score columns for specified numeric columns in DataFrame.
+
+    Args:
+        df (pd.DataFrame): Input DataFrame
+        cols (list[str]): List of column names to calculate z-scores for
+
+    Returns:
+        pd.DataFrame: DataFrame with added z-score columns (suffixed with '_z')
+    """
     new_df = df.copy()
     for c in cols:
         new_df[c + "_z"] = zscore(df[c])
     return new_df
 
 
-def analyze_ccm(df):
+def analyze_ccm(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Performs Competitive Component Matrix analysis on match data.
+
+    Args:
+        df (pd.DataFrame): DataFrame containing match data
+
+    Returns:
+        pd.DataFrame: Processed DataFrame with CCM analysis results and z-scores
+    """
     s = time.time()
     matches = df
     #print(f"Read data: {time.time()-s} sec")
@@ -142,10 +194,15 @@ def analyze_ccm(df):
     #print(tabulate(r[r.columns[-4:]], headers='keys', tablefmt='psql', floatfmt=".2f"))
     return r
 
-def calculate_match_by_match(all_data):
+def calculate_match_by_match(all_data: pd.DataFrame) -> pd.DataFrame:
     """
-    Calculate team distributions over time, grabbing incrementally larger groups of matches
-    :return:
+    Calculates team performance metrics incrementally over groups of matches.
+
+    Args:
+        all_data (pd.DataFrame): DataFrame containing all match data
+
+    Returns:
+        pd.DataFrame: Concatenated results of incremental analyses
     """
     batch = 0
     batch_size = 5
@@ -160,15 +217,31 @@ def calculate_match_by_match(all_data):
 
     return  pd.concat(result_dfs)
 
-def fake_analyze():
+def fake_analyze() -> pd.DataFrame:
+    """
+    Performs test analysis using sample match data.
+
+    Returns:
+        pd.DataFrame: Results of match-by-match analysis
+    """
     d = get_match_data()
     r = calculate_match_by_match(get_match_data())
     return r
 
-def latest_match():
+def latest_match() -> pd.DataFrame:
+    """
+    Analyzes the most recent match data.
+
+    Returns:
+        pd.DataFrame: Analysis results for the latest match
+    """
     return analyze_ccm(get_match_data())
 
-def test_select():
+def test_select() -> None:
+    """
+    Tests metric selection and weighting functionality.
+    Prints weighted analysis results in tabular format.
+    """
     original = latest_match()
     #print( df.columns)
     selected_metrics = ['score_z','foul_count_z']
@@ -184,7 +257,13 @@ def test_select():
     print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
 
 
-def matches_over_time():
+def matches_over_time() -> pd.DataFrame:
+    """
+    Analyzes match data over time using incremental batches.
+
+    Returns:
+        pd.DataFrame: Time series analysis of match performance
+    """
     return calculate_match_by_match(get_match_data())
 
 if __name__  == '__main__':
@@ -202,5 +281,3 @@ if __name__  == '__main__':
     #r.to_csv('all_the_things.csv', float_format='%.2f')
     #print (r.shape)
     #print ( f"Total time: {time.time()-start} sec") #0.32 sec on my laptop for all matches, read off disk=0.1
-
-
