@@ -90,7 +90,7 @@ if team is not None and len(events) > 0:
     
     # Combine match stats
     team_stats = pd.concat(match_stats)
-    st.write(f"Stats shape: {team_stats.shape}")  # Debug
+    # st.write(f"Stats shape: {team_stats.shape}")  # Debug
     
     # Select metrics and their z-scores
     base_metrics = [col for col in team_stats.columns 
