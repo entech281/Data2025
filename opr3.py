@@ -167,6 +167,7 @@ def analyze_ccm(df: pd.DataFrame) -> pd.DataFrame:
     #r.to_csv('all_the_things.csv',float_format='%.2f')
 
     cols_to_use = remove_from_list(r.columns, [ 'team_id'])
+    
     with_z = add_zscores(r, cols_to_use)
 
     #print(with_z.columns)
@@ -281,3 +282,56 @@ if __name__  == '__main__':
     #r.to_csv('all_the_things.csv', float_format='%.2f')
     #print (r.shape)
     #print ( f"Total time: {time.time()-start} sec") #0.32 sec on my laptop for all matches, read off disk=0.1
+
+
+
+def calculate_raw_opr(matches: pd.DataFrame) -> pd.DataFrame:
+    """
+    Calculates raw OPR metrics without z-scores.
+    
+    Args:
+        matches (pd.DataFrame): DataFrame with match data
+        
+    Returns:
+        pd.DataFrame: Raw OPR values for each team
+    """
+    # Get unique teams
+    team_list = pd.unique(matches[['red1','red2','red3','blue1','blue2','blue3']].values.ravel('K'))
+    
+    # Get column mappings
+    numeric_columns = matches.select_dtypes(include='number').columns
+    red_col_map, automapped_fields = column_map_for_color(numeric_columns, 'red')
+    blue_col_map, _ = column_map_for_color(numeric_columns, 'blue')
+    
+    # Transform data
+    red_data = matches.rename(columns=red_col_map)
+    blue_data = matches.rename(columns=blue_col_map)
+    all_data = pd.concat([red_data, blue_data])
+    all_data['margin'] = all_data['score'] - all_data['their_score']
+    
+    # Build match matrix
+    m = []
+    for _, match in all_data.iterrows():
+        r = []
+        for team in team_list:
+            if match['t1'] == team or match['t2'] == team or match['t3'] == team:
+                r.append(1)
+            else:
+                r.append(0)
+        m.append(r)
+    m_m = np.matrix(m)
+    
+    # Calculate OPR
+    computed_cols = ['margin', 'their_score'] + automapped_fields
+    left_side = all_data[computed_cols]
+    c_c = np.matrix(left_side)
+    
+    pseudo_inverse = np.linalg.pinv(m_m)
+    computed = np.matmul(pseudo_inverse, c_c)
+    
+    # Format results
+    results = pd.DataFrame(computed, columns=computed_cols)
+    teams_df = pd.DataFrame(team_list, columns=['team_id'])
+    final_results = pd.concat([teams_df, results], axis=1)
+    
+    return final_results.sort_values(by=['score'], ascending=False)
