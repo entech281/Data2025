@@ -65,6 +65,7 @@ if selected_team != 'None' and selected_tag != 'None':
     st.subheader("Data")
 
     my_df = tags_df[(tags_df['team_number'] == selected_team)]
+    my_df = my_df['']
 
     st.dataframe(my_df)
 
