@@ -3,6 +3,8 @@ from motherduck import con
 import pandas as pd
 from cached_data import get_teams
 from opr3 import *
+import altair as alt
+import math
 
 # con.sql("INSERT INTO scouting.tags (\"team_number\", \"tag\") VALUES (281, 'Bad Driver')")
 # con.sql("INSERT INTO scouting.tags (\"team_number\", \"tag\") VALUES (281, 'Good Driver')")
@@ -61,17 +63,27 @@ def get_team_stats(team_number: int, df: pd.DataFrame) -> pd.DataFrame:
 
 st.title("Team Spotlight")
 
-team_list = sorted(get_teams()['team_number'].values.tolist())
+team_list = sorted(get_teams()['team_number'].fillna(0).values.tolist())
+# for team in team_list:
+#     team = str()
 
+# TODO
+# Make all of these one one sql statement
 event_list = con.sql("SELECT DISTINCT event_key FROM tba.matches").df()['event_key'].values.tolist()
 matches_df = con.sql("SELECT * FROM tba.matches").df()
+tags_df = con.sql(f"""SELECT te.team_number, count(ta.tag), ta.tag
+                        FROM tba.teams te
+                        LEFT JOIN scouting.tags ta ON
+                        (ta.team_number = te.team_number)
+                        GROUP BY te.team_number, ta.tag;""").df()
 
-team = st.selectbox("Team Number", team_list)
-events = st.multiselect("Event", event_list)
+
+team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team))
+events = st.pills("Event", event_list, selection_mode="multi")
 
 
 
-if team is not None and len(events) > 0:
+if team is not None and events is not None and len(events) > 0:
     st.subheader(f"Team {team} Performance")
     
     # Get matches for team
@@ -136,3 +148,38 @@ if team is not None and len(events) > 0:
         },
         hide_index=True
     )
+
+
+
+if team is not None:
+    
+    st.subheader("Data")
+
+    # Create pivot table
+    pivot_df = tags_df[tags_df['team_number'] == team].pivot_table(
+        index='team_number',
+        columns='tag',
+        values='count(ta.tag)',
+        fill_value=0
+    ).reset_index()
+
+    # Melt for Altair visualization
+    chart_df = pivot_df.melt(
+        id_vars=['team_number'],
+        var_name='tag',
+        value_name='count'
+    )
+
+    # Create chart
+    c = alt.Chart(chart_df).mark_bar().encode(
+        x='tag:N',
+        y='count:Q'
+    )
+    
+    st.altair_chart(c)
+    st.dataframe(pivot_df.drop(columns='team_number'))
+
+    if pivot_df.empty:
+        st.write("Nothing to display :slightly_frowning_face:")
+        st.write("Here is a squirrel to make you feel less sad")
+        st.image("./static/squirrel.png", width=75)
