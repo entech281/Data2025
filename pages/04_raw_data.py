@@ -1,5 +1,6 @@
 import streamlit as st
 import cached_data
+from motherduck import con
 st.set_page_config(layout="wide")
 
 display_config = {

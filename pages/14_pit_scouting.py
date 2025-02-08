@@ -84,22 +84,21 @@ with st.form("pit_scouting"):
             'author' : author
         }
 
-        st.write(data)
+        # st.write(data)
         
-        # Insert into database
-        # try:
-        #     con.sql("""
-        #         INSERT INTO scouting.pit_data 
-        #         (team_number, height, weight, length, width, 
-        #         start_position, auto_route, scoring_capabilities, 
-        #         preferred_scoring, notes)
-        #         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        #     """, [
-        #         data['team_number'], data['height'], data['weight'],
-        #         data['length'], data['width'], data['start_position'],
-        #         data['auto_route'], data['scoring_capabilities'],
-        #         data['preferred_scoring'], data['notes']
-        #     ])
-        #     st.success("Data saved successfully!")
-        # except Exception as e:
-        #     st.error(f"Error saving data: {str(e)}")
+        try:
+            con.sql("""
+                INSERT INTO scouting.pit 
+                (team_number, height, weight, length, width, 
+                start_position, auto_route, scoring_capabilities, 
+                preferred_scoring, notes, author)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """ % (
+                data['team_number'], data['height'], data['weight'],
+                data['length'], data['width'], data['start_position'],
+                data['auto_route'], data['scoring_capabilities'],
+                data['preferred_scoring'], data['notes'], data['author']
+            ))
+            st.success("Data saved successfully!")
+        except Exception as e:
+            st.error(f"Error saving data: {str(e)}")
