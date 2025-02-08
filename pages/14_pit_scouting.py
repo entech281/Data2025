@@ -31,7 +31,7 @@ with st.form("pit_scouting"):
     # Auto Route
     cam_input = st.camera_input(label="Auto Route (draw a picture please)")
 
-    auto_route = []
+    auto_route = None
 
     if cam_input:
         binary_data = cam_input.read()
@@ -42,7 +42,7 @@ with st.form("pit_scouting"):
         image.save(img_byte_arr, format='PNG')
         img_byte_arr = img_byte_arr.getvalue()
 
-        auto_route = [img_byte_arr]
+        auto_route = img_byte_arr
     
     scoring_possibilities = ["Coral L1", "Coral L2", "Coral L3", "Coral L4", "Processor", "Barge", "Deep Climb", "Shallow Climb"]
 
@@ -84,21 +84,20 @@ with st.form("pit_scouting"):
             'author' : author
         }
 
-        # st.write(data)
         
         try:
-            con.sql("""
+            con.execute("""
                 INSERT INTO scouting.pit 
                 (team_number, height, weight, length, width, 
                 start_position, auto_route, scoring_capabilities, 
                 preferred_scoring, notes, author)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-            """ % (
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, [
                 data['team_number'], data['height'], data['weight'],
                 data['length'], data['width'], data['start_position'],
                 data['auto_route'], data['scoring_capabilities'],
                 data['preferred_scoring'], data['notes'], data['author']
-            ))
+            ])
             st.success("Data saved successfully!")
         except Exception as e:
             st.error(f"Error saving data: {str(e)}")
