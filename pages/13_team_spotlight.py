@@ -59,6 +59,17 @@ tags_df = con.sql(f"""SELECT te.team_number, count(ta.tag), ta.tag
                         (ta.team_number = te.team_number)
                         GROUP BY te.team_number, ta.tag;""").df()
 pit_df = con.sql("SELECT * FROM scouting.pit").df()
+ranking_df = con.sql(f"""
+SELECT  er.team_number,
+        er.rank as actual_rank,
+        o.oprs,
+        er.event_key,
+        RANK() OVER (ORDER BY oprs DESC) as expected_rank
+FROM tba.event_rankings er
+INNER JOIN tba.oprs o ON (er.team_number = o.team_number AND er.event_key = o.event_key)
+""").df()
+ 
+
 
 # For some reason this helps stabilize the selections
 temp = []
@@ -70,6 +81,39 @@ event_list = temp
 
 team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team))
 events = st.pills("Event", event_list, selection_mode="multi", )
+
+
+if team is not None:
+    team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin(events))]
+    
+    if not team_ranking.empty:
+
+        with st.container(border=True):
+            st.subheader("Rankings Analysis")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if pd.notna(team_ranking['oprs'].iloc[0]):
+                    st.metric("OPR", f"{team_ranking['oprs'].iloc[0]:.2f}")
+                else:
+                    st.info("No OPR data available")
+                    
+            with col2:
+                if pd.notna(team_ranking['actual_rank'].iloc[0]):
+                    st.metric("Current Rank", int(team_ranking['actual_rank'].iloc[0]))
+                else:
+                    st.info("No ranking data available")
+                    
+            with col3:
+                if pd.notna(team_ranking['actual_rank'].iloc[0]) and pd.notna(team_ranking['expected_rank'].iloc[0]):
+                    rank_diff = int(team_ranking['actual_rank'].iloc[0]) - int(team_ranking['expected_rank'].iloc[0])
+                    status = "Underranked" if rank_diff > 0 else "Overranked" if rank_diff < 0 else "Accurately ranked"
+                    delta = rank_diff
+                    st.metric("Ranking Status", status, delta=f"{delta} positions")
+                else:
+                    st.info("Cannot calculate ranking difference")
+    else:
+        st.info("No ranking info")
 
 
 
@@ -144,7 +188,7 @@ if team is not None and events is not None and len(events) > 0:
 
 if team is not None:
     
-    st.subheader("Data")
+    st.subheader("Tags")
 
     # Create pivot table
     pivot_df = tags_df[tags_df['team_number'] == team].pivot_table(
@@ -223,4 +267,3 @@ if team is not None:
 
     else:
         st.info("No pit scouting data available for this team yet")
-
