@@ -63,6 +63,8 @@ with st.form("pit_scouting"):
     
     # Additional Notes
     notes = st.text_area("Additional Notes")
+
+    author = st.text_input("author initials (no caps or space)")
     
     submitted = st.form_submit_button("Submit")
     
@@ -78,7 +80,8 @@ with st.form("pit_scouting"):
             'auto_route': auto_route,
             'scoring_capabilities': ','.join(scoring_capabilities),
             'preferred_scoring': preferred_scoring,
-            'notes': notes
+            'notes': notes,
+            'author' : author
         }
 
         st.write(data)
