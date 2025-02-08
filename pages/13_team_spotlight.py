@@ -5,6 +5,8 @@ from cached_data import get_teams
 from opr3 import *
 import altair as alt
 import math
+from PIL import Image
+import io
 
 
 def get_team_stats(team_number: int, df: pd.DataFrame) -> pd.DataFrame:
@@ -58,9 +60,16 @@ tags_df = con.sql(f"""SELECT te.team_number, count(ta.tag), ta.tag
                         GROUP BY te.team_number, ta.tag;""").df()
 pit_df = con.sql("SELECT * FROM scouting.pit").df()
 
+# For some reason this helps stabilize the selections
+temp = []
+for event in event_list:
+    temp.append(event)
+
+event_list = temp
+
 
 team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team))
-events = st.pills("Event", event_list, selection_mode="multi")
+events = st.pills("Event", event_list, selection_mode="multi", )
 
 
 
@@ -130,46 +139,7 @@ if team is not None and events is not None and len(events) > 0:
         hide_index=True
     )
 
-    pit_df = pit_df[(pit_df['team_number']) == team]
-    if not pit_df.empty:
-        st.divider()
-        st.subheader("📝 Pit Scouting Data")
-        
-        col1, col2, col3 = st.columns(3)
-        
-        with col1:
-            st.metric("Height", f"{pit_df['height'].iloc[0]}\"")
-            st.metric("Width", f"{pit_df['width'].iloc[0]}\"")
-        
-        with col2:
-            st.metric("Length", f"{pit_df['length'].iloc[0]}\"")
-            st.metric("Weight", f"{pit_df['weight'].iloc[0]} lbs")
-        
-        with col3:
-            st.metric("Preferred Start", pit_df['start_position'].iloc[0])
-            st.metric("Preferred Scoring", pit_df['preferred_scoring'].iloc[0])
-        
-        # Strategy section
-        st.subheader("🎯 Strategy")
-        capabilities = pit_df['scoring_capabilities'].iloc[0].split(',')
-        st.write("**Scoring Capabilities:**", ", ".join(capabilities))
-        
-        # Auto route
-        if pit_df['auto_route'].iloc[0] is not None:
-            st.subheader("🤖 Auto Route")
-            st.image(pit_df['auto_route'].iloc[0], use_container_width=True)
-        
-        # Notes section
-        if pit_df['notes'].iloc[0]:
-            st.subheader("📌 Notes")
-            st.info(pit_df['notes'].iloc[0])
-        
-        # Metadata
-        st.caption(f"Last updated by {pit_df['author'].iloc[0]} on {pit_df['created_at'].iloc[0].strftime('%Y-%m-%d %H:%M')}")
-
-    else:
-        st.info("No pit scouting data available for this team yet")
-
+    
 
 
 if team is not None:
@@ -200,10 +170,57 @@ if team is not None:
 
 
     if pivot_df.empty:
-        st.write("No tag data to display :slightly_frowning_face:")
-        st.write("Here is a squirrel to make you feel less sad")
+        st.info("No tag data to display :slightly_frowning_face:")
+        st.info("Here is a squirrel to make you feel less sad")
         st.image("./static/squirrel.png", width=75)
         st.link_button("Image credit", "https://xkcd.com/1503")
     else:
         st.altair_chart(c)
-        st.dataframe(pivot_df.drop(columns='team_number'))
+
+
+
+
+    pit_df = pit_df[(pit_df['team_number']) == team]
+    if not pit_df.empty:
+        st.divider()
+        st.subheader("📝 Pit Scouting Data")
+        
+        col1, col2, col3 = st.columns(3)
+
+        prefered_scoring = str(", ".join(pit_df['preferred_scoring'].iloc[-1].split(','))).removeprefix("[").removesuffix("]")
+        
+        
+        with col1:
+            st.metric("Height", f"{pit_df['height'].iloc[0]}\"")
+            st.metric("Width", f"{pit_df['width'].iloc[0]}\"")
+        
+        with col2:
+            st.metric("Length", f"{pit_df['length'].iloc[0]}\"")
+            st.metric("Weight", f"{pit_df['weight'].iloc[0]} lbs")
+        
+        with col3:
+            st.metric("Preferred Start", pit_df['start_position'].iloc[0])
+            st.metric("Preferred Scoring", prefered_scoring)
+        
+        # Strategy section
+        st.subheader("🎯 Strategy")
+        capabilities = pit_df['scoring_capabilities'].iloc[0].split(',')
+        st.write("**Scoring Capabilities:**", ", ".join(capabilities))
+        st.write("**Preferred Scoring:** ", prefered_scoring)
+        
+        # Auto route
+        if pit_df['auto_route'].iloc[0] is not None:
+            st.subheader("🤖 Auto Route")
+            st.image(Image.open(io.BytesIO(pit_df['auto_route'].iloc[0])), use_container_width=True)
+        
+        # Notes section
+        if pit_df['notes'].iloc[0]:
+            st.subheader("📌 Notes")
+            st.info(pit_df['notes'].iloc[0])
+        
+        # Metadata
+        st.caption(f"Last updated by {pit_df['author'].iloc[0]} on {pit_df['created_at'].iloc[0].strftime('%Y-%m-%d %H:%M')}")
+
+    else:
+        st.info("No pit scouting data available for this team yet")
+
