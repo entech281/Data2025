@@ -76,20 +76,23 @@ if team is not None and len(events) > 0:
     match_stats = []
     for i in range(1, len(team_matches) + 1):
         match_slice = team_matches.iloc[:i]
-        # Calculate raw metrics
+
         raw_stats = calculate_raw_opr(match_slice)
-        raw_stats = raw_stats[raw_stats['team_id'] == team]
-        
-        # Add z-scores
         numeric_cols = raw_stats.select_dtypes(include=['float64', 'int64']).columns
         numeric_cols = [col for col in numeric_cols if col not in ['team_id', 'match_num']]
         with_z = add_zscores(raw_stats, numeric_cols)
         
         with_z['match_num'] = i
+        with_z = with_z[with_z['team_id'] == team]
+        with_z = with_z.fillna(0)
+
         match_stats.append(with_z)
+
+        
     
     # Combine match stats
     team_stats = pd.concat(match_stats)
+    
     # st.write(f"Stats shape: {team_stats.shape}")  # Debug
     
     # Select metrics and their z-scores
