@@ -5,6 +5,15 @@ import util
 import logging
 from datetime import datetime
 
+"""
+"district": {
+    "abbreviation": "fsc",
+    "display_name": "FIRST South Carolina",
+    "key": "2025fsc",
+    "year": 2025
+},
+"""
+
 logger = logging.getLogger(__name__)
 
 
@@ -53,12 +62,7 @@ def sync():
 
 
     #for 2025 event_list = [ '2025schar','2025sccha', '2025sccmp' ]
-    event_list =  ['2025fsc','2024gacmp']
-    # sccha
-    # sccmp
-    # schar
-    # 2025schar
-    # 2025sccmp
+    event_list =  ['2025sccha','2025sccmp','2025schar', '2024gacmp']
 
 
     logger.info("Teams...")
@@ -78,8 +82,6 @@ def sync():
     logger.info(load_info)
 
     logger.warning("Sync Complete!")
-
-
 
 
 if __name__ == '__main__':

@@ -54,8 +54,9 @@ def get_teams_for_event(event_name):
 
 def get_matches_for_event(event_name):
     matches= _get("/event/{event_key}/matches".format(event_key=event_name))
-
+    print("Got MatchList : ", json.dumps(matches, indent=4))
     def flatten_match(match):
+        print("Got Match : ", json.dumps(match,indent=4))
         r = get_fields(match, [ 'actual_time','match_number','key','event_key','comp_level'])
         blue_teams = match["alliances"]["blue"]["team_keys"]
         red_teams = match["alliances"]["red"]["team_keys"]
@@ -136,5 +137,7 @@ if __name__ == '__main__':
     setup_logging()
     #print ( json.dumps(get_rankings_for_district(),indent=4))''
     #print(json.dumps(get_event_rankings('2025schar'), indent=4))
-    r=get_event_rankings('2025schar')
+    event_list = ['2025sccha', '2024gacmp']
+    for e in event_list:
+        r=get_matches_for_event(e)
     print(r)
