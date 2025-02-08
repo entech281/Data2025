@@ -29,7 +29,7 @@ st.title("Team Ranking Based on Selected Characteristics")
 
 # Select characteristics
 available_chars = [col for col in df.columns if col != "team_id"]
-selected_chars = st.multiselect("Select Characteristics", available_chars, default=['score_z','foul_count_z'])
+selected_chars = st.pills("Select Characteristics", available_chars, selection_mode="multi", default=['score_z','foul_count_z'])
 
 if len(selected_chars) == 0 :
     st.write("Select at least one characteristic to proceed.")
