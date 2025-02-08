@@ -3,6 +3,8 @@ import pandas as pd
 from motherduck import con
 from opr3 import *
 from cached_data import get_teams
+from PIL import Image
+import io
 
 st.title("Pit Scouting Form")
 
@@ -14,11 +16,11 @@ with st.form("pit_scouting"):
     # Physical Specifications
     col1, col2 = st.columns(2)
     with col1:
-        height = st.number_input("Robot Height Extended w/out bumpers (inches)", min_value=0.0, max_value=100.0)
-        length = st.number_input("Robot Length w/out bumpers (inches)", min_value=0.0, max_value=100.0)
+        height = st.number_input("Robot Height Extended w/out bumpers (inches)", min_value=0, max_value=120, step=1, value=60)
+        length = st.number_input("Robot Length w/out bumpers (inches)", min_value=0, max_value=60, step=1, value=36)
     with col2:
-        weight = st.number_input("Robot Weight w/out bumpers (lbs)", min_value=0.0, max_value=150.0)
-        width = st.number_input("Robot Width w/out bumpers (inches)", min_value=0.0, max_value=100.0)
+        weight = st.number_input("Robot Weight w/out bumpers (lbs)", min_value=0, max_value=125, step=1, value=100)
+        width = st.number_input("Robot Width w/out bumpers (inches)", min_value=0, max_value=60, step=1, value=36)
     
     # Starting Position
     start_pos = st.selectbox(
@@ -27,7 +29,20 @@ with st.form("pit_scouting"):
     )
     
     # Auto Route
-    auto_route = st.text_area("Auto Route Description")
+    cam_input = st.camera_input(label="Auto Route (draw a picture please)")
+
+    auto_route = []
+
+    if cam_input:
+        binary_data = cam_input.read()
+
+        # Convert the image to PNG format
+        image = Image.open(io.BytesIO(binary_data))
+        img_byte_arr = io.BytesIO()
+        image.save(img_byte_arr, format='PNG')
+        img_byte_arr = img_byte_arr.getvalue()
+
+        auto_route = [img_byte_arr]
     
     scoring_possibilities = ["Coral L1", "Coral L2", "Coral L3", "Coral L4", "Processor", "Barge", "Deep Climb", "Shallow Climb"]
 
