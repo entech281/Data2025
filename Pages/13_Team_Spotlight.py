@@ -4,6 +4,15 @@ import pandas as pd
 from cached_data import get_teams
 from opr3 import *
 
+# con.sql("INSERT INTO scouting.tags (\"team_number\", \"tag\") VALUES (281, 'Bad Driver')")
+# con.sql("INSERT INTO scouting.tags (\"team_number\", \"tag\") VALUES (281, 'Good Driver')")
+
+# con.sql("""CREATE OR REPLACE TABLE scouting.tags (
+#   team_number INTEGER,
+#   tag VARCHAR,
+#   mod_dte TIMESTAMP
+# );""")
+
 # Ok I copied and pasted this but that is definitely not the 
 # right way to do it
 # I was gonna import it but the filename starts with a number
