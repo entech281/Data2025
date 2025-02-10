@@ -1,12 +1,16 @@
 import pandas as pd
 import sys
-#from motherduck import con
+from motherduck import con
+import util
+from pandasql import sqldf
 import numpy as np
 from scipy.stats import zscore
 from tabulate import tabulate
 import time
+import logging
+import dataframe_sync
+log = logging.getLogger("cmm")
 from match_dataset_tools import unstack_data_from_color,drop_columns_with_word_in_column_name,add_zscores,find_columns_with_suffix
-
 
 
 def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
@@ -42,6 +46,7 @@ def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
 
     #print("Col map=",column_map)
     return column_map,list(automapped_fields)
+
 
 def calculate_opr_ccwm_dpr(matches: pd.DataFrame) -> pd.DataFrame:
     """
@@ -120,6 +125,12 @@ def get_match_data() -> pd.DataFrame:
     return matches
 
 
+def get_ordered_matches() -> pd.DataFrame:
+    s = time.time()
+    r = con.sql("select * from frc_2025.tba.matches where actual_time is not null and event_key='2024gacmp' order by actual_time desc;").df()
+    log.info(f"Fetched {len(r)} matches, {time.time()-s } s")
+    return r
+
 def remove_from_list (original:list[str],to_remove:list[str] ) -> list[str]:
     """
     Removes specified elements from a list.
@@ -163,11 +174,9 @@ def analyze_ccm(df: pd.DataFrame) -> pd.DataFrame:
     """
     s = time.time()
     matches = df
-    #print(f"Read data: {time.time()-s} sec")
     r = calculate_opr_ccwm_dpr(matches)
 
     r = drop_columns_with_word_in_column_name(r,'threshold')
-    #r.to_csv('all_the_things.csv',float_format='%.2f')
 
     cols_to_use = remove_from_list(r.columns, [ 'team_id'])
     
@@ -186,9 +195,11 @@ def analyze_ccm(df: pd.DataFrame) -> pd.DataFrame:
     #   if c.endswith("_z"):
     #     with_z[c +"_w" ] = with_z[c] * weights.iloc[0][c]
 
-    weighted_columns = find_columns_with_suffix(with_z,"_z") +[ "team_id"]
+    #weighted_columns = find_columns_with_suffix(with_z,"_z") +[ "team_id"]
+    #weighted_columns = with_z
     #print(weighted_columns)
-    r = with_z[weighted_columns]
+    with_z['team_id'] = r['team_id']
+    #r = with_z[weighted_columns]
     #weight_col= r.pop('weight')
     #r.insert(0, 'weight', weight_col)
     #r = r.T
@@ -196,7 +207,10 @@ def analyze_ccm(df: pd.DataFrame) -> pd.DataFrame:
 
     #print(r.columns)
     #print(tabulate(r[r.columns[-4:]], headers='keys', tablefmt='psql', floatfmt=".2f"))
-    return r
+    team_count = with_z['team_id'].count()
+    log.debug(f"CCM: {len(cols_to_use)} attributes ({len(with_z)} cols), {team_count} teams")
+    return with_z
+
 
 def calculate_match_by_match(all_data: pd.DataFrame) -> pd.DataFrame:
     """
@@ -214,12 +228,148 @@ def calculate_match_by_match(all_data: pd.DataFrame) -> pd.DataFrame:
 
     while batch < len(all_data):
         batch += batch_size
-        print(f"Computing, batch size={batch}")
         r = analyze_ccm(all_data.head(batch))
         r['batch'] = batch
         result_dfs.append(r)
 
     return  pd.concat(result_dfs)
+
+
+def rolling_match_cmm(all_matches_sorted_by_time_desc: pd.DataFrame, windows_name:str, window_size:int) -> list[pd.DataFrame]:
+    total_rows = len(all_matches_sorted_by_time_desc)
+    num_windows = int(total_rows - window_size)
+
+    r = []
+    for i in range(num_windows):
+        window_start = i
+        window_end = i + window_size
+
+        match_window = all_matches_sorted_by_time_desc.iloc[window_start:window_end]
+
+        analyzed_matches = analyze_ccm(match_window)
+        analyzed_matches['window_name'] = windows_name
+        analyzed_matches['window_index'] = i
+        analyzed_matches['windows_size'] = len(match_window)
+        analyzed_matches['window_min_actual_time'] = match_window['actual_time'].min()
+        analyzed_matches['window_max_actual_time'] = match_window['actual_time'].max()
+        r.append(analyzed_matches)
+    return r
+
+
+def rolling_match_cmm_batch(all_matches_sorted_by_time_desc: pd.DataFrame,rolling_windows:dict[str,int] ) -> pd.DataFrame:
+    r = []
+    s = time.time()
+    for name, window_size in rolling_windows.items():
+        r.extend(rolling_match_cmm(all_matches_sorted_by_time_desc,name,window_size))
+
+    return pd.concat(r)
+
+
+def get_new_matches_that_need_analyzing():
+    """
+    Assumes matches have already been synchronized
+    could be sped up by querying a dataframe we fetched already ( but cmm table is potentially big, not
+    selecting all of that is probably faster )
+    :return:
+    """
+    last_match_actual_time_analyzed = con.execute("select max(actual_time) from frc2025.scouting.match_cmm").fetchone()[0]
+    matches_that_need_analyzing = con.execute("select * from frc2025.tba.matches where actual_time > {last_match_actual_time_analyzed}").df()
+    log.info(f"{len(matches_that_need_analyzing)} Matches to Analyze")
+    return matches_that_need_analyzing
+
+
+def rolling_match_cmm2(all_matches_sorted_by_time_desc: pd.DataFrame, window_name:str, window_size:int,last_analyzed_actual_time:int) -> list[pd.DataFrame]:
+
+    #total_rows = len(all_matches_sorted_by_time_desc)
+    #num_windows = int(total_rows - window_size)
+
+    #get the matches we need to analyze. its only the ones since we analyzed last. we need to compute a new window
+    #BEGINNING with each one of these
+    #we'll use the actual_time to make it easy to select the ranges.
+    #each window is just the next window_size rows where actual time is <= the selected match
+    match_actual_times_to_analyze = sqldf(f"""
+        select actual_time from all_matches_sorted_by_time_desc
+        where actual_time > {last_analyzed_actual_time}
+        order by actual_time DESC
+    """, locals())["actual_time"].tolist()
+
+
+    if len(match_actual_times_to_analyze) <= 0:
+        log.info(f"Window: {window_name}: No new matches to handle: we are up to date. Last match actual time: {last_analyzed_actual_time }")
+        return []
+    else:
+        log.info(f"Looks like we have {len(match_actual_times_to_analyze)} new matches to handle since {last_analyzed_actual_time}")
+
+    log.debug(f"New Match times = {match_actual_times_to_analyze}")
+    r = []
+    # each match to be analyzed has a unique actual time.
+    # we want to compute a moving window _ending_ with each match, so
+    # each window will end with the actual_time of a single match
+    # each window definition can have its own set
+    # the dataset will have a row per team,
+    # so the primary key of the table is the team_id, the window_name, and the actual_time of the ending match in that window.
+    for actual_time  in match_actual_times_to_analyze: #
+        log.debug(f"Handle Match Actual time: {actual_time}")
+
+        log.debug(f"DF columns = {all_matches_sorted_by_time_desc.columns}")
+
+        matches_window = sqldf(f"""
+            select * from all_matches_sorted_by_time_desc
+            where actual_time <= {actual_time}
+            order by actual_time DESC
+            LIMIT {window_size}
+        """,locals() )
+        log.debug(f"Window: {window_name} : Analyze {window_size} matches <= {actual_time} rows={len(matches_window)}")
+        log.debug(matches_window[['key','actual_time']])
+        actual_window_size = len(matches_window) # could be lower if there are insufficient rows to complete the window
+        window_start_actual_time = matches_window['actual_time'].min()
+        window_end_actual_time = matches_window['actual_time'].max()
+        log.debug(f"Window has {len(matches_window)} matches")
+        analyzed_matches = analyze_ccm(matches_window)
+        analyzed_matches['window_name'] = window_name
+        analyzed_matches['window_size'] = actual_window_size
+        analyzed_matches['window_start_actual_time'] = window_start_actual_time
+        analyzed_matches['window_end_actual_time'] = window_end_actual_time
+        log.info(f"Results: name={window_name}, size={actual_window_size}, start={window_start_actual_time}, end={window_end_actual_time}, matches={actual_window_size}, teams={len(analyzed_matches)}")
+        log.debug(f"""To see the matches and data for this  window, run:
+                Matches:
+                select * from frc2025.tba.matches where actual_time<= {window_end_actual_time} and actual_time > {window_start_actual_time} order by actual_time desc;
+                
+                Data:
+                select * from frc2025.scouting.matches_cmm where window_name={window_name} and window_end_actual_time = {window_end_actual_time} order by team_id desc;
+        """)
+
+        r.append(analyzed_matches)
+    return r
+
+
+def rolling_match_cmm_batch2(all_matches_sorted_by_time_desc: pd.DataFrame,rolling_windows:dict[str,int] ) -> pd.DataFrame:
+    r = []
+    s = time.time()
+    last_match_actual_time_analyzed = -1
+    try:
+        last_match_actual_time_analyzed = con.execute("select max(window_end_actual_time) from frc_2025.scouting.match_cmm").fetchone()[0]
+        log.info(f"Last analyzed match time : {last_match_actual_time_analyzed}")
+    except Exception as e:
+        log.error(f"No existing analysis-- we'll start over! {e}", exc_info=False)
+
+    for name, window_size in rolling_windows.items():
+        log.debug(f"Process Window '{name}':size={window_size}")
+        r.extend(rolling_match_cmm2(all_matches_sorted_by_time_desc,name,window_size,last_match_actual_time_analyzed))
+
+    if len(r)> 0:
+        results = pd.concat(r)
+        #the primary key of each analysis is the actual_time of the LAST match in the window.
+        #its a LITTLE dangerous to use this, but i dont think two matches could begin or end in the same millisecond.
+        dataframe_sync.sync_df(con,results,"frc_2025.scouting.match_cmm",key_field_names=['team_id','window_name','window_end_actual_time'])
+        log.info(f"Analysis complete: {time.time() - s} sec, saving {len(results)} rows.")
+    else:
+        log.info(f"Run completed: There were no new matches to analyze.")
+    return len(r)
+
+
+
+
 
 def fake_analyze() -> pd.DataFrame:
     """
@@ -232,6 +382,7 @@ def fake_analyze() -> pd.DataFrame:
     r = calculate_match_by_match(get_match_data())
     return r
 
+
 def latest_match() -> pd.DataFrame:
     """
     Analyzes the most recent match data.
@@ -240,6 +391,7 @@ def latest_match() -> pd.DataFrame:
         pd.DataFrame: Analysis results for the latest match
     """
     return analyze_ccm(get_match_data())
+
 
 def test_select() -> None:
     """
@@ -258,7 +410,7 @@ def test_select() -> None:
     all = all.sort_values(by='total_z', ascending=False)
     all['rank'] = all['total_z'].rank(ascending=False)
     all = pd.melt(all,id_vars=['team_id'])
-    print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
+    log.info(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
 
 
 def matches_over_time() -> pd.DataFrame:
@@ -271,12 +423,21 @@ def matches_over_time() -> pd.DataFrame:
     return calculate_match_by_match(get_match_data())
 
 if __name__  == '__main__':
-    all = latest_match()
-    all = all.reset_index()
-    all = all.set_index('team_id')
-    all = all.T
-    print(all.columns)
-    print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
+    #all = latest_match()
+    #all = all.reset_index()
+    #all = all.set_index('team_id')
+    #all = all.T
+    #print(all.columns)
+    #print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
+    util.setup_logging()
+
+    m = get_ordered_matches()
+
+    r = rolling_match_cmm_batch2(m, {
+        'rolling-100': 100,
+        'rolling-75': 75
+    })
+
     #pd.set_option('display.max_columns',None)
     #test_select()
     #start = time.time()
@@ -285,7 +446,7 @@ if __name__  == '__main__':
     #r.to_csv('all_the_things.csv', float_format='%.2f')
     #print (r.shape)
     #print ( f"Total time: {time.time()-start} sec") #0.32 sec on my laptop for all matches, read off disk=0.1
-
+    print(r)
 
 
 def calculate_raw_opr(matches: pd.DataFrame) -> pd.DataFrame:

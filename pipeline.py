@@ -50,7 +50,6 @@ def event_rankings_source(event_list):
 def district_rankings_source():
     yield from tba.get_rankings_for_district()
 
-
 def sync():
 
 

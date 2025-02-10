@@ -56,7 +56,4 @@ c = (
 )
 st.altair_chart(c, use_container_width=True)
 
-
-
-
 st.dataframe(df_ranked,height=600,hide_index=True)
