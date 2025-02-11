@@ -21,3 +21,20 @@ def create_schema():
              mod_dte timestamp default current_timestamp
         );
     """)
+
+    con.sql("""
+        CREATE OR REPLACE TABLE scouting.pit (
+            team_number INTEGER,
+            height INTEGER,
+            weight INTEGER,
+            length INTEGER,
+            width INTEGER,
+            start_position VARCHAR,
+            auto_route BLOB,
+            scoring_capabilities VARCHAR,
+            preferred_scoring VARCHAR,
+            notes TEXT,
+            author VARCHAR,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+    """)
