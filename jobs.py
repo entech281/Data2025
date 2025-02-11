@@ -13,7 +13,7 @@ def sync_from_tba():
     pipeline.sync()
     log.warning("TBA sync job is complete")
 
-schedule.every(JOB_INTERVAL_MINUTES).minutes.do(sync_from_tba)
+#schedule.every(JOB_INTERVAL_MINUTES).minutes.do(sync_from_tba)
 log.info(f"Scheduled Sync job every {JOB_INTERVAL_MINUTES} minutes")
 
 def run_continuously(interval=10):
@@ -40,7 +40,7 @@ def run_continuously(interval=10):
     continuous_thread.start()
     return cease_continuous_run
 
-stop_run_continuously = run_continuously()
+#stop_run_continuously = run_continuously()
 
-def stop():
-    stop_run_continuously.set()
+#def stop():
+#    stop_run_continuously.set()

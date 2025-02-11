@@ -15,8 +15,7 @@ def set_logger(new_logger):
     logger = new_logger
 
 DATE_FORMAT="%Y-%m-%d"
-#TBA_ACCESS_TOKEN=st.secrets['tba']['auth_key']
-TBA_ACCESS_TOKEN='fGDyOOUMbLSkaoccMXV22KFXu1XdU5kK2VuKVAJEZq5cTBBN2dKFQEBstoUCPWhE'
+TBA_ACCESS_TOKEN=st.secrets['tba']['auth_key']
 TBA_API_ROOT = 'https://www.thebluealliance.com/api/v3/'
 DISTRICT_KEY='2025fsc'
 DISTRICT_EVENTS=[ '2025schar','2025sccha', '2025sccmp' ]
