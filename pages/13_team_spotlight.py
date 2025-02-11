@@ -7,40 +7,8 @@ import altair as alt
 import math
 from PIL import Image
 import io
+from pages_util.style import  st_horizontal
 
-
-def get_team_stats(team_number: int, df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Get historical statistics for a specific team with both raw and z-scored metrics.
-    
-    Args:
-        team_number (int): FRC team number
-        df (pd.DataFrame): DataFrame containing data to analyze
-        
-    Returns:
-        pd.DataFrame: DataFrame with raw metrics and z-scores over time
-    """
-    # Calculate raw OPR metrics
-    raw_metrics = calculate_raw_opr(df)
-    
-    # Filter for specific team
-    team_data = raw_metrics[raw_metrics['team_id'] == team_number]
-    
-    if len(team_data) == 0:
-        return pd.DataFrame()
-    
-    # Add z-scores for numeric columns
-    numeric_cols = team_data.select_dtypes(include=['float64', 'int64']).columns
-    z_scores = add_zscores(team_data, numeric_cols)
-    
-    # Join raw and z-scored metrics
-    result = pd.concat([team_data, z_scores], axis=1)
-    
-    # Clean and sort
-    result = result.fillna(0)
-    # result = result.sort_values(['event_key', 'match_number'])
-    
-    return result
 
 
 
@@ -51,7 +19,7 @@ team_list = sorted(get_teams()['team_number'].fillna(0).values.tolist())
 
 # TODO
 # Make all of these one one sql statement
-event_list = con.sql("SELECT DISTINCT event_key FROM tba.matches").df()['event_key'].values.tolist()
+event_list = con.sql("SELECT DISTINCT event_key FROM tba.matches ORDER BY event_key").df()['event_key'].values.tolist()
 matches_df = con.sql("SELECT * FROM tba.matches").df()
 tags_df = con.sql(f"""SELECT te.team_number, count(ta.tag), ta.tag
                         FROM tba.teams te
@@ -71,16 +39,9 @@ INNER JOIN tba.oprs o ON (er.team_number = o.team_number AND er.event_key = o.ev
  
 
 
-# For some reason this helps stabilize the selections
-temp = []
-for event in event_list:
-    temp.append(event)
-
-event_list = temp
-
 
 team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team))
-events = st.pills("Event", event_list, selection_mode="multi", )
+events = st.pills("Event", event_list, selection_mode="multi")
 
 
 if team is not None:
@@ -211,8 +172,6 @@ if team is not None:
         y='count:Q'
     )
     
-
-
     if pivot_df.empty:
         st.info("No tag data to display :slightly_frowning_face:")
         st.info("Here is a squirrel to make you feel less sad")
@@ -232,19 +191,22 @@ if team is not None:
         col1, col2, col3 = st.columns(3)
 
         prefered_scoring = str(", ".join(pit_df['preferred_scoring'].iloc[-1].split(','))).removeprefix("[").removesuffix("]")
-        
+
         
         with col1:
-            st.metric("Height", f"{pit_df['height'].iloc[0]}\"")
-            st.metric("Width", f"{pit_df['width'].iloc[0]}\"")
+            with st_horizontal():
+                st.metric("Height", f"{pit_df['height'].iloc[0]}\"")
+                st.metric("Width", f"{pit_df['width'].iloc[0]}\"")
         
         with col2:
-            st.metric("Length", f"{pit_df['length'].iloc[0]}\"")
-            st.metric("Weight", f"{pit_df['weight'].iloc[0]} lbs")
+            with st_horizontal():
+                st.metric("Length", f"{pit_df['length'].iloc[0]}\"")
+                st.metric("Weight", f"{pit_df['weight'].iloc[0]} lbs")
         
         with col3:
-            st.metric("Preferred Start", pit_df['start_position'].iloc[0])
-            st.metric("Preferred Scoring", prefered_scoring)
+            with st_horizontal():
+                st.metric("Preferred Start", pit_df['start_position'].iloc[0])
+                st.metric("Preferred Scoring", prefered_scoring)
         
         # Strategy section
         st.subheader("🎯 Strategy")
