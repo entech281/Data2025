@@ -1,4 +1,5 @@
 import streamlit as st
+import jobs
 st.set_page_config(layout="wide")
 
 st.title("281 Scouting")
