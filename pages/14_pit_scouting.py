@@ -145,7 +145,7 @@ with st.form("pit_scouting"):
     submitted = st.form_submit_button("Submit")
     
     if submitted:
-        # Create data for insertion
+        # Create data for insertion/update
         data = {
             'team_number': team,
             'height': height,
@@ -155,25 +155,49 @@ with st.form("pit_scouting"):
             'start_position': start_pos,
             'auto_route': auto_route,
             'scoring_capabilities': ','.join(scoring_capabilities),
-            'preferred_scoring': preferred_scoring,
+            'preferred_scoring': ','.join(preferred_scoring) if isinstance(preferred_scoring, list) else preferred_scoring,
             'notes': notes,
-            'author' : author
+            'author': author
         }
 
-        
         try:
-            con.execute("""
-                INSERT INTO scouting.pit 
-                (team_number, height, weight, length, width, 
-                start_position, auto_route, scoring_capabilities, 
-                preferred_scoring, notes, author)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, [
-                data['team_number'], data['height'], data['weight'],
-                data['length'], data['width'], data['start_position'],
-                data['auto_route'], data['scoring_capabilities'],
-                data['preferred_scoring'], data['notes'], data['author']
-            ])
-            st.success("Data saved successfully!")
+            if override:
+                # Update existing row for the team
+                con.execute("""
+                    UPDATE scouting.pit
+                    SET height = ?,
+                        weight = ?,
+                        length = ?,
+                        width = ?,
+                        start_position = ?,
+                        auto_route = ?,
+                        scoring_capabilities = ?,
+                        preferred_scoring = ?,
+                        notes = ?,
+                        author = ?,
+                        created_at = CURRENT_TIMESTAMP
+                    WHERE team_number = ?
+                """, [
+                    data['height'], data['weight'], data['length'], data['width'],
+                    data['start_position'], data['auto_route'], data['scoring_capabilities'],
+                    data['preferred_scoring'], data['notes'], data['author'],
+                    data['team_number']
+                ])
+                st.success("Data updated successfully!")
+            else:
+                # Insert new row for the team
+                con.execute("""
+                    INSERT INTO scouting.pit 
+                    (team_number, height, weight, length, width, 
+                    start_position, auto_route, scoring_capabilities, 
+                    preferred_scoring, notes, author)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, [
+                    data['team_number'], data['height'], data['weight'],
+                    data['length'], data['width'], data['start_position'],
+                    data['auto_route'], data['scoring_capabilities'],
+                    data['preferred_scoring'], data['notes'], data['author']
+                ])
+                st.success("Data saved successfully!")
         except Exception as e:
             st.error(f"Error saving data: {str(e)}")
