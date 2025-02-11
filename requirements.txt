@@ -18,4 +18,4 @@ dlt[motherduck]
 great_tables
 scipy
 pygwalker
-scheduler
+schedule
