@@ -21,8 +21,29 @@ teams_with_forms = [t for t in all_teams if t in existing_teams]
 # Add override checkbox
 override = st.checkbox("Update existing pit scouting entry")
 
-def get_default_data():
-    return pd.DataFrame([{
+if override:
+    selected_team = st.selectbox("Team Number", teams_with_forms, key="pit_team")
+else:
+    selected_team = st.selectbox("Team Number", teams_without_forms, key="pit_team")
+
+def get_default_data(team: int = None) -> pd.DataFrame:
+    """
+    Retrieve default pit scouting data for a given team.
+
+    If a team number is provided and a pit scouting entry exists for that team,
+    this function returns a DataFrame with the latest data from the database,
+    cleaning up the scoring_capabilities and preferred_scoring fields.
+    If no team is provided or there is no existing entry, a DataFrame with default
+    pit scouting values is returned.
+
+    Parameters:
+        team (int, optional): The team number. Defaults to None.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing default pit scouting data.
+    """
+    # Default pit scouting values
+    default = pd.DataFrame([{
         'height': 60,
         'weight': 100,
         'length': 36,
@@ -33,20 +54,25 @@ def get_default_data():
         'notes': "",
         'auto_route': None
     }])
-
-with st.form("pit_scouting"):
-    if override:
-        team = st.selectbox("Team Number", teams_with_forms)
-        if team:
-            default_data = con.sql(f"""
+    
+    if team is not None:
+        df = con.sql(f"""
                 SELECT * FROM scouting.pit 
                 WHERE team_number = {team} 
                 ORDER BY created_at DESC LIMIT 1
             """).df()
-            default_data['preferred_scoring'] = default_data['preferred_scoring'].str.removeprefix("[").str.removesuffix("]")
-            default_data['scoring_capabilities'] = default_data['scoring_capabilities'].str.removeprefix("[").str.removesuffix("]")
+        if not df.empty:
+            # Clean up the string fields
+            df['preferred_scoring'] = df['preferred_scoring'].str.removeprefix("[").str.removesuffix("]")
+            df['scoring_capabilities'] = df['scoring_capabilities'].str.removeprefix("[").str.removesuffix("]")
+            return df
+    return default
+
+with st.form("pit_scouting"):
+    team = selected_team
+    if override and team:
+        default_data = get_default_data(team)
     else:
-        team = st.selectbox("Team Number", teams_without_forms)
         default_data = get_default_data()
 
     # Physical Specifications
@@ -73,8 +99,23 @@ with st.form("pit_scouting"):
     )
     
     # Auto Route
-    cam_input = st.camera_input(label="Auto Route (draw a picture please)")
-    auto_route = None if cam_input is None else cam_input.read()
+
+    
+    # image = Image.open(io.BytesIO(binary_data))
+    # img_byte_arr = io.BytesIO()
+    # image.save(img_byte_arr, format='PNG')
+    # img_byte_arr = img_byte_arr.getvalue()
+    
+
+    binary_data = st.camera_input(label="Auto Route (draw a picture please)")
+    auto_route = None
+    
+    if binary_data is not None:
+        binary_data = binary_data.read()
+        image_pil = Image.open(io.BytesIO(binary_data))
+        img_byte_arr = io.BytesIO()
+        image_pil.save(img_byte_arr, format='PNG')
+        auto_route = img_byte_arr.getvalue()
     
     if default_data['auto_route'].iloc[0] is not None:
         st.image(Image.open(io.BytesIO(default_data['auto_route'].iloc[0])), caption="Previous Auto Route")
@@ -92,7 +133,7 @@ with st.form("pit_scouting"):
     preferred_scoring = st.pills(
         "Preferred Scoring Method",
         scoring_possibilities,
-        # default=default_data['preferred_scoring'].iloc[0].split(',') if default_data['preferred_scoring'].iloc[0] else [],
+        default=default_data['preferred_scoring'].iloc[0].split(', ') if default_data['preferred_scoring'].iloc[0] else [],
         selection_mode="multi",
         key="preferred_scoring"
     )
