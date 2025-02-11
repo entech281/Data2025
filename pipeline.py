@@ -12,7 +12,6 @@ def everyone_use_the_same_logger():
     tba.set_logger(logger)
     return logger
 
-
 @dlt.resource(table_name="teams", write_disposition='merge', primary_key='key')
 def sync_teams_source(event_list):
     for event_name in event_list:
@@ -51,15 +50,7 @@ def sync():
         dataset_name='tba'
     )
 
-
-    #for 2025 event_list = [ '2025schar','2025sccha', '2025sccmp' ]
-    event_list =  ['2025fsc','2024gacmp']
-    # sccha
-    # sccmp
-    # schar
-    # 2025schar
-    # 2025sccmp
-
+    event_list =  ['2025sccha','2025sccmp','2025schar', '2024gacmp']
 
     logger.info("Teams...")
     load_info = pipeline.run(sync_teams_source(event_list))
@@ -78,8 +69,6 @@ def sync():
     logger.info(load_info)
 
     logger.warning("Sync Complete!")
-
-
 
 
 if __name__ == '__main__':
