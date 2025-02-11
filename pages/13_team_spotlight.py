@@ -5,81 +5,76 @@ from cached_data import get_teams
 from opr3 import *
 import altair as alt
 import math
+from PIL import Image
+import io
+from pages_util.style import  st_horizontal
 
-# con.sql("INSERT INTO scouting.tags (\"team_number\", \"tag\") VALUES (281, 'Bad Driver')")
-# con.sql("INSERT INTO scouting.tags (\"team_number\", \"tag\") VALUES (281, 'Good Driver')")
-
-# con.sql("""CREATE OR REPLACE TABLE scouting.tags (
-#   team_number INTEGER,
-#   tag VARCHAR,
-#   mod_dte TIMESTAMP
-# );""")
-
-# Ok I copied and pasted this but that is definitely not the 
-# right way to do it
-# I was gonna import it but the filename starts with a number
-@st.cache_data( ttl=120)
-def get_historical_match_data() :
-    df = matches_over_time()  # Ensure your DataFrame has 'team_id' and z-score columns
-    df.reset_index(drop=True, inplace=True)
-    #df['team_id'] = df['team_id'].apply(str)
-    return df
-
-
-def get_team_stats(team_number: int, df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Get historical statistics for a specific team with both raw and z-scored metrics.
-    
-    Args:
-        team_number (int): FRC team number
-        df (pd.DataFrame): DataFrame containing data to analyze
-        
-    Returns:
-        pd.DataFrame: DataFrame with raw metrics and z-scores over time
-    """
-    # Calculate raw OPR metrics
-    raw_metrics = calculate_raw_opr(df)
-    
-    # Filter for specific team
-    team_data = raw_metrics[raw_metrics['team_id'] == team_number]
-    
-    if len(team_data) == 0:
-        return pd.DataFrame()
-    
-    # Add z-scores for numeric columns
-    numeric_cols = team_data.select_dtypes(include=['float64', 'int64']).columns
-    z_scores = add_zscores(team_data, numeric_cols)
-    
-    # Join raw and z-scored metrics
-    result = pd.concat([team_data, z_scores], axis=1)
-    
-    # Clean and sort
-    result = result.fillna(0)
-    # result = result.sort_values(['event_key', 'match_number'])
-    
-    return result
 
 
 
 st.title("Team Spotlight")
 
 team_list = sorted(get_teams()['team_number'].fillna(0).values.tolist())
-# for team in team_list:
-#     team = str()
+
 
 # TODO
 # Make all of these one one sql statement
-event_list = con.sql("SELECT DISTINCT event_key FROM tba.matches").df()['event_key'].values.tolist()
+event_list = con.sql("SELECT DISTINCT event_key FROM tba.matches ORDER BY event_key").df()['event_key'].values.tolist()
 matches_df = con.sql("SELECT * FROM tba.matches").df()
 tags_df = con.sql(f"""SELECT te.team_number, count(ta.tag), ta.tag
                         FROM tba.teams te
                         LEFT JOIN scouting.tags ta ON
                         (ta.team_number = te.team_number)
                         GROUP BY te.team_number, ta.tag;""").df()
+pit_df = con.sql("SELECT * FROM scouting.pit").df()
+ranking_df = con.sql(f"""
+SELECT  er.team_number,
+        er.rank as actual_rank,
+        o.oprs,
+        er.event_key,
+        RANK() OVER (ORDER BY oprs DESC) as expected_rank
+FROM tba.event_rankings er
+INNER JOIN tba.oprs o ON (er.team_number = o.team_number AND er.event_key = o.event_key)
+""").df()
+ 
+
 
 
 team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team))
 events = st.pills("Event", event_list, selection_mode="multi")
+
+
+if team is not None:
+    team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin(events))]
+    
+    if not team_ranking.empty:
+
+        with st.container(border=True):
+            st.subheader("Rankings Analysis")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                if pd.notna(team_ranking['oprs'].iloc[0]):
+                    st.metric("OPR", f"{team_ranking['oprs'].iloc[0]:.2f}")
+                else:
+                    st.info("No OPR data available")
+                    
+            with col2:
+                if pd.notna(team_ranking['actual_rank'].iloc[0]):
+                    st.metric("Current Rank", int(team_ranking['actual_rank'].iloc[0]))
+                else:
+                    st.info("No ranking data available")
+                    
+            with col3:
+                if pd.notna(team_ranking['actual_rank'].iloc[0]) and pd.notna(team_ranking['expected_rank'].iloc[0]):
+                    rank_diff = int(team_ranking['actual_rank'].iloc[0]) - int(team_ranking['expected_rank'].iloc[0])
+                    status = "Underranked" if rank_diff > 0 else "Overranked" if rank_diff < 0 else "Accurately ranked"
+                    delta = rank_diff
+                    st.metric("Ranking Status", status, delta=f"{delta} positions")
+                else:
+                    st.info("Cannot calculate ranking difference")
+    else:
+        st.info("No ranking info")
 
 
 
@@ -149,11 +144,12 @@ if team is not None and events is not None and len(events) > 0:
         hide_index=True
     )
 
+    
 
 
 if team is not None:
     
-    st.subheader("Data")
+    st.subheader("Tags")
 
     # Create pivot table
     pivot_df = tags_df[tags_df['team_number'] == team].pivot_table(
@@ -176,10 +172,60 @@ if team is not None:
         y='count:Q'
     )
     
-    st.altair_chart(c)
-    st.dataframe(pivot_df.drop(columns='team_number'))
-
     if pivot_df.empty:
-        st.write("Nothing to display :slightly_frowning_face:")
-        st.write("Here is a squirrel to make you feel less sad")
+        st.info("No tag data to display :slightly_frowning_face:")
+        st.info("Here is a squirrel to make you feel less sad")
         st.image("./static/squirrel.png", width=75)
+        st.link_button("Image credit", "https://xkcd.com/1503")
+    else:
+        st.altair_chart(c)
+
+
+
+
+    pit_df = pit_df[(pit_df['team_number']) == team]
+    if not pit_df.empty:
+        st.divider()
+        st.subheader("📝 Pit Scouting Data")
+        
+        col1, col2, col3 = st.columns(3)
+
+        prefered_scoring = str(", ".join(pit_df['preferred_scoring'].iloc[-1].split(','))).removeprefix("[").removesuffix("]")
+
+        
+        with col1:
+            with st_horizontal():
+                st.metric("Height", f"{pit_df['height'].iloc[0]}\"")
+                st.metric("Width", f"{pit_df['width'].iloc[0]}\"")
+        
+        with col2:
+            with st_horizontal():
+                st.metric("Length", f"{pit_df['length'].iloc[0]}\"")
+                st.metric("Weight", f"{pit_df['weight'].iloc[0]} lbs")
+        
+        with col3:
+            with st_horizontal():
+                st.metric("Preferred Start", pit_df['start_position'].iloc[0])
+                st.metric("Preferred Scoring", prefered_scoring)
+        
+        # Strategy section
+        st.subheader("🎯 Strategy")
+        capabilities = pit_df['scoring_capabilities'].iloc[0].split(',')
+        st.write("**Scoring Capabilities:**", ", ".join(capabilities))
+        st.write("**Preferred Scoring:** ", prefered_scoring)
+        
+        # Auto route
+        if pit_df['auto_route'].iloc[0] is not None:
+            st.subheader("🤖 Auto Route")
+            st.image(Image.open(io.BytesIO(pit_df['auto_route'].iloc[0])), use_container_width=True)
+        
+        # Notes section
+        if pit_df['notes'].iloc[0]:
+            st.subheader("📌 Notes")
+            st.info(pit_df['notes'].iloc[0])
+        
+        # Metadata
+        st.caption(f"Last updated by {pit_df['author'].iloc[0]} on {pit_df['created_at'].iloc[0].strftime('%Y-%m-%d %H:%M')}")
+
+    else:
+        st.info("No pit scouting data available for this team yet")
