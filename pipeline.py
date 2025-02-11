@@ -6,11 +6,15 @@ import logging
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
+loop_delay_secs=5
 
+def set_loop_delay(new_delay_secs):
+    global loop_delay_secs
+    loop_delay_secs = new_delay_secs
 
 def everyone_use_the_same_logger():
-    tba.set_logger(logger)
     return logger
+
 
 @dlt.resource(table_name="teams", write_disposition='merge', primary_key='key')
 def sync_teams_source(event_list):
@@ -52,19 +56,19 @@ def sync():
 
     event_list =  ['2025sccha','2025sccmp','2025schar', '2024gacmp']
 
-    logger.info("Teams...")
+    logger.info("Sync Teams...")
     load_info = pipeline.run(sync_teams_source(event_list))
     logger.info(load_info)
 
-    logger.info("Matches...")
+    logger.info("Sync Matches...")
     load_info = pipeline.run(sync_matches_source(event_list))
     logger.info(load_info)
 
-    logger.info("Rankings...")
+    logger.info("Sync Rankings...")
     load_info = pipeline.run(event_rankings_source(event_list))
     logger.info(load_info)
 
-    logger.info("Oprs...")
+    logger.info("Sync Oprs...")
     load_info = pipeline.run(event_opr_source(event_list))
     logger.info(load_info)
 
