@@ -1,13 +1,20 @@
 import schedule
 import time
 import threading
-print("Loading Jobs Package")
+import pipeline
+import logging
 
+log = logging.getLogger("jobs.py")
 
-def job():
-    print("I'm running")
+JOB_INTERVAL_MINUTES = 5
 
-schedule.every(10).seconds.do(job)
+def sync_from_tba():
+    log.warning("Running  TBA Sync Job")
+    pipeline.sync()
+    log.warning("TBA sync job is complete")
+
+#schedule.every(JOB_INTERVAL_MINUTES).minutes.do(sync_from_tba)
+log.info(f"Scheduled Sync job every {JOB_INTERVAL_MINUTES} minutes")
 
 def run_continuously(interval=10):
     """Continuously run, while executing pending jobs at each
@@ -36,4 +43,4 @@ def run_continuously(interval=10):
 #stop_run_continuously = run_continuously()
 
 #def stop():
-    #stop_run_continuously.set()
+#    stop_run_continuously.set()

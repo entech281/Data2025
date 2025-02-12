@@ -2,6 +2,7 @@ import requests
 import json
 import logging
 import pandas as pd
+from io import StringIO
 from datetime import datetime,date
 import time
 import streamlit as st
@@ -14,8 +15,7 @@ def set_logger(new_logger):
     logger = new_logger
 
 DATE_FORMAT="%Y-%m-%d"
-#TBA_ACCESS_TOKEN=st.secrets['tba']['auth_key']
-TBA_ACCESS_TOKEN='fGDyOOUMbLSkaoccMXV22KFXu1XdU5kK2VuKVAJEZq5cTBBN2dKFQEBstoUCPWhE'
+TBA_ACCESS_TOKEN=st.secrets['tba']['auth_key']
 TBA_API_ROOT = 'https://www.thebluealliance.com/api/v3/'
 DISTRICT_KEY='2025fsc'
 DISTRICT_EVENTS=[ '2025schar','2025sccha', '2025sccmp' ]
@@ -102,7 +102,7 @@ def get_event_rankings(event_key):
 def get_event_oprs(event_key):
 
     r = _get("/event/{event_key}/oprs".format(event_key=event_key), result_type='text')
-    df = pd.read_json(r, orient='columns').reset_index()
+    df = pd.read_json(StringIO(r), orient='columns').reset_index()
     df['team_number'] = df['index'].apply(team_number_from_key)
 
     df = zero_if_column_missing(df,'oprs')

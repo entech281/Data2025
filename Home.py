@@ -1,5 +1,5 @@
 import streamlit as st
-from motherduck import con
+import jobs
 st.set_page_config(layout="wide")
 
 st.title("281 Scouting")

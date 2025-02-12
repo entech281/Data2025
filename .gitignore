@@ -4,7 +4,7 @@ venv
 *.pyc
 .ipynb_checkpoints
 *creds.json
-.streamlit
+.streamlit/secrets.toml
 duckdb.exe
 .data
 .dlt

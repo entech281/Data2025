@@ -1,7 +1,7 @@
+
 import streamlit as st
 from streamlit_extras.row import row
 from pages_util.style import st_horizontal
-
 
 RECORD_KEY="scout_record"
 class ScoutingRecord(object):
