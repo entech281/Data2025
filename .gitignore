@@ -4,8 +4,7 @@
 *.pyc
 .ipynb_checkpoints
 *creds.json
-.streamlit
-data
+.streamlit/secrets.toml
 duckdb.exe
 .data
-.dlt
+_old

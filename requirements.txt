@@ -16,3 +16,6 @@ ordered_set
 polars
 dlt[motherduck]
 great_tables
+scipy
+pygwalker
+schedule
