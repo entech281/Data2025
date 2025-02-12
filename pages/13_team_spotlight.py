@@ -1,15 +1,13 @@
 import streamlit as st
 from motherduck import con
 import pandas as pd
-from cached_data import get_teams
+from cached_data import get_teams,get_event_list,get_matches
 from opr3 import *
 import altair as alt
 import math
 from PIL import Image
 import io
 from pages_util.style import  st_horizontal
-
-
 
 
 st.title("Team Spotlight")
@@ -19,8 +17,8 @@ team_list = sorted(get_teams()['team_number'].fillna(0).values.tolist())
 
 # TODO
 # Make all of these one one sql statement
-event_list = con.sql("SELECT DISTINCT event_key FROM tba.matches ORDER BY event_key").df()['event_key'].values.tolist()
-matches_df = con.sql("SELECT * FROM tba.matches").df()
+event_list = get_event_list()
+matches_df =get_matches()
 tags_df = con.sql(f"""SELECT te.team_number, count(ta.tag), ta.tag
                         FROM tba.teams te
                         LEFT JOIN scouting.tags ta ON
