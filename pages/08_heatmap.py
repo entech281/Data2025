@@ -8,6 +8,7 @@ from cached_data import get_teams,get_event_list,get_matches
 from match_dataset_tools import find_columns_with_suffix
 st.set_page_config(layout="wide")
 st.title("Z-score Heatmap")
+
 event_list = get_event_list()
 event_to_look_at = st.pills("Event",event_list , selection_mode="single")
 df = opr3.get_ccm_data_for_match(event_to_look_at)

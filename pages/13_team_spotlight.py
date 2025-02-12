@@ -10,8 +10,6 @@ import io
 from pages_util.style import  st_horizontal
 
 
-
-
 st.title("Team Spotlight")
 
 team_list = sorted(get_teams()['team_number'].fillna(0).values.tolist())
