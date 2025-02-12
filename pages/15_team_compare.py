@@ -57,7 +57,7 @@ if team1 and team2 and len(events) > 0:
                     st.metric("Rank Difference", abs(rank_diff), f"Team {leader} leads")
 
     # Performance comparison
-    st.subheader("Performance Metrics")
+    # st.subheader("Performance Metrics")
     
     # Get match data
     matches_df = con.sql("""
@@ -74,37 +74,42 @@ if team1 and team2 and len(events) > 0:
               if col not in ['team_id', 'margin', 'their_score']
               and not col.endswith('_z')]
     
-    # Create comparison chart
+    # Create comparison chart with proper numeric conversions
     comparison_data = []
     for metric in metrics:
+        val_team1 = float(team1_stats[metric].iloc[0][0])
+        val_team2 = float(team2_stats[metric].iloc[0][0])
         comparison_data.append({
             'Metric': metric,
-            f'Team {team1}': team1_stats[metric].iloc[0],
-            f'Team {team2}': team2_stats[metric].iloc[0],
-            'Difference': team1_stats[metric].iloc[0] - team2_stats[metric].iloc[0]
+            f'Team {team1}': val_team1,
+            f'Team {team2}': val_team2,
+            'Difference': val_team1 - val_team2
         })
-    
+
     comparison_df = pd.DataFrame(comparison_data)
-    
-    # Display metrics comparison
-    st.dataframe(
-        comparison_df,
-        column_config={
-            'Metric': 'Metric',
-            f'Team {team1}': st.column_config.NumberColumn(f'Team {team1}', format="%.2f"),
-            f'Team {team2}': st.column_config.NumberColumn(f'Team {team2}', format="%.2f"),
-            'Difference': st.column_config.BarChartColumn(
-                'Difference',
-                min_value=comparison_df['Difference'].min(),
-                max_value=comparison_df['Difference'].max()
-            )
-        },
-        hide_index=True
-    )
+
+    # Determine min and max values for the bar chart column
+    diff_min = comparison_df['Difference'].min()
+    diff_max = comparison_df['Difference'].max()
+
+    # st.dataframe(
+    #     comparison_df,
+    #     column_config={
+    #         'Metric': 'Metric',
+    #         f'Team {team1}': st.column_config.NumberColumn(f'Team {team1}', format="%.2f"),
+    #         f'Team {team2}': st.column_config.NumberColumn(f'Team {team2}', format="%.2f"),
+    #         'Difference': st.column_config.BarChartColumn(
+    #             'Difference',
+    #             y_min=diff_min,
+    #             y_max=diff_max
+    #         )
+    #     },
+    #     hide_index=True
+    # )
 
     # Pit data comparison
     st.subheader("Robot Specifications")
-    pit_df = con.sql("""
+    pit_df = con.execute("""
         SELECT * FROM scouting.pit 
         WHERE team_number IN (?, ?)
         ORDER BY created_at DESC
@@ -122,3 +127,9 @@ if team1 and team2 and len(events) > 0:
                 if not pit_df[pit_df['team_number'] == team2].empty:
                     value = pit_df[pit_df['team_number'] == team2][spec].iloc[0]
                     st.metric(f"Team {team2} {spec}", value)
+
+    else:
+        st.info(f"No specs data to display for teams {team1} and {team2} :slightly_frowning_face:")
+        st.info("Here is a squirrel to make you feel less sad")
+        st.image("./static/squirrel.png", width=75)
+        st.link_button("Image credit (Click me)", "https://xkcd.com/1503")
