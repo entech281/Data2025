@@ -12,7 +12,7 @@ In this case, simply adding a tag observation as a row in a table, but with guid
 df = con.sql("select team_number from tba.teams").df()
 team_list = df['team_number'].values.tolist()
 available_tags = [
-    "Good Driver", "Bad Driver", "Unreliable"
+    "Good Driver", "Bad Driver", "Unreliable", "Fast", "Normal-Speed", "Slow", "Pizza Box", "Disable"
 ]
 
 selected_team = st.selectbox("team Number",team_list)
