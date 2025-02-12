@@ -1,6 +1,7 @@
 import pandas as pd
 import sys
 from motherduck import con
+import cached_data
 import numpy as np
 from scipy.stats import zscore
 from tabulate import tabulate
@@ -263,8 +264,8 @@ def test_select() -> None:
     print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
 
 
-def get_chartbuilder_ccm_data() -> pd.DataFrame:
-    all_match_data = get_match_data()
+def get_ccm_data() -> pd.DataFrame:
+    all_match_data = cached_data.get_matches()
     event_keys = all_match_data['event_key'].unique().tolist()
 
     r = []

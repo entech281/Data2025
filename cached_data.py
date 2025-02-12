@@ -1,4 +1,6 @@
 import cachetools.func
+import pandas as pd
+
 from motherduck import con
 import polars as pl
 
@@ -17,3 +19,8 @@ def get_rankings() -> pl.DataFrame:
 @cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
 def get_teams() -> pl.DataFrame:
     return con.sql("select * from tba.teams").df();
+
+@cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
+def get_event_list() -> pd.DataFrame:
+    return con.sql("SELECT DISTINCT event_key FROM tba.matches ORDER BY event_key").df()[
+        'event_key'].values.tolist()
