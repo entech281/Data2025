@@ -9,14 +9,9 @@ from match_dataset_tools import find_columns_with_suffix
 st.set_page_config(layout="wide")
 st.title("Z-score Heatmap")
 event_list = get_event_list()
-
 event_to_look_at = st.pills("Event",event_list , selection_mode="single")
-
-df = opr3.get_ccm_data() # Ensure your DataFrame has 'team_id' and z-score columns
-df = df [ df['event_key'] == event_to_look_at]
-
-weighted_columns = find_columns_with_suffix(df,"_z") +[ "team_id"]
-df = df [weighted_columns]
+df = opr3.get_ccm_data_for_match(event_to_look_at)
+df = opr3.select_z_score_columns(df, ['team_id'])
 
 df.reset_index(drop=True, inplace=True)
 df = df.set_index('team_id')

@@ -5,7 +5,16 @@ import plotly.express as px
 
 # Load your DataFrame (replace this with your actual data loading method)
 import opr3
-df = opr3.latest_match() # Ensure your DataFrame has 'team_id' and z-score columns
+
+from cached_data import get_event_list
+
+
+st.header("Select Event")
+event_list = get_event_list()
+event_to_look_at = st.pills("Event",event_list , selection_mode="single")
+df = opr3.get_ccm_data_for_match(event_to_look_at)
+df = opr3.select_z_score_columns(df, ['team_id'])
+
 
 def compute_weighted_score(df, selected_chars, weights):
     weighted_scores = df[selected_chars].mul(weights).sum(axis=1)
@@ -30,7 +39,7 @@ st.title("Team Ranking Based on Selected Characteristics")
 
 # Select characteristics
 available_chars = [col for col in df.columns if col != "team_id"]
-selected_chars = st.pills("Select Characteristics", options=available_chars, default=['score_z','foul_count_z'], selection_mode="multi")
+selected_chars = st.pills("Select Characteristics", options=available_chars, default=['score_z'], selection_mode="multi")
 
 if len(selected_chars) == 0 :
     st.write("Select at least one characteristic to proceed.")

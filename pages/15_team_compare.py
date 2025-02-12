@@ -1,7 +1,7 @@
 import streamlit as st
 from motherduck import con
 import pandas as pd
-from cached_data import get_teams
+from cached_data import get_teams,get_event_list
 from opr3 import *
 import altair as alt
 from pages_util.team_stats import get_team_stats
@@ -10,7 +10,7 @@ st.title("Team Comparison")
 
 # Get data
 team_list = sorted(get_teams()['team_number'].fillna(0).astype(int).values.tolist())
-event_list = con.sql("SELECT DISTINCT event_key FROM tba.matches ORDER BY event_key").df()['event_key'].values.tolist()
+event_list = get_event_list()
 
 # Team selection
 col1, col2 = st.columns(2)
