@@ -48,7 +48,7 @@ def district_rankings_source():
 
 def sync(password):
     os.environ['2025SC__DESTINATION__MOTHERDUCK__CREDENTIALS__DATABASE'] = 'frc_2025'
-    os.environ['2025SC__DESTINATION__MOTHERDUCK__CREDENTIALS__PASSWORD'] = 'password'
+    os.environ['2025SC__DESTINATION__MOTHERDUCK__CREDENTIALS__PASSWORD'] = password
     for key in sorted(os.environ.keys()):
         print(f"{key}={os.environ[key]}")
     
