@@ -3,6 +3,7 @@ import tba
 import motherduck
 import util
 import logging
+import os
 from datetime import datetime
 
 logger = logging.getLogger(__name__)
@@ -47,7 +48,9 @@ def district_rankings_source():
 
 def sync():
 
-    dlt.config.from_env()
+    for key in sorted(os.environ.keys()):
+        print(f"{key}={os.environ[key]}")
+    
     print("DLT Vars:",dlt.config)
     pipeline = dlt.pipeline(
         pipeline_name='2025sc',
