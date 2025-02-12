@@ -47,7 +47,8 @@ def district_rankings_source():
 
 def sync():
 
-
+    dlt.config.from_env()
+    print("DLT Vars:",dlt.config)
     pipeline = dlt.pipeline(
         pipeline_name='2025sc',
         destination='motherduck',
