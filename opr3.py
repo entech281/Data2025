@@ -1,11 +1,13 @@
 import pandas as pd
 import sys
-#from motherduck import con
+from motherduck import con
 import numpy as np
 from scipy.stats import zscore
 from tabulate import tabulate
 import time
 from match_dataset_tools import unstack_data_from_color,drop_columns_with_word_in_column_name,add_zscores,find_columns_with_suffix
+
+
 def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
     """
     Creates a mapping of column names based on the specified color.
@@ -39,6 +41,7 @@ def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
 
     #print("Col map=",column_map)
     return column_map,list(automapped_fields)
+
 
 def calculate_opr_ccwm_dpr(matches: pd.DataFrame) -> pd.DataFrame:
     """
@@ -112,8 +115,8 @@ def get_match_data() -> pd.DataFrame:
     Returns:
         pd.DataFrame: DataFrame containing match data
     """
-    #matches = con.sql("select * from frc_2025.tba.matches where event_key = '2024gacmp'").df()
-    matches = pd.read_parquet("./tests/data/matches.pq")
+    matches = con.sql("select * from frc_2025.tba.matches").df()
+
     return matches
 
 
@@ -183,9 +186,9 @@ def analyze_ccm(df: pd.DataFrame) -> pd.DataFrame:
     #   if c.endswith("_z"):
     #     with_z[c +"_w" ] = with_z[c] * weights.iloc[0][c]
 
-    weighted_columns = find_columns_with_suffix(with_z,"_z") +[ "team_id"]
+    #weighted_columns = find_columns_with_suffix(with_z,"_z") +[ "team_id"]
     #print(weighted_columns)
-    r = with_z[weighted_columns]
+    #r = with_z[weighted_columns]
     #weight_col= r.pop('weight')
     #r.insert(0, 'weight', weight_col)
     #r = r.T
@@ -193,7 +196,7 @@ def analyze_ccm(df: pd.DataFrame) -> pd.DataFrame:
 
     #print(r.columns)
     #print(tabulate(r[r.columns[-4:]], headers='keys', tablefmt='psql', floatfmt=".2f"))
-    return r
+    return with_z
 
 def calculate_match_by_match(all_data: pd.DataFrame) -> pd.DataFrame:
     """
@@ -229,6 +232,7 @@ def fake_analyze() -> pd.DataFrame:
     r = calculate_match_by_match(get_match_data())
     return r
 
+
 def latest_match() -> pd.DataFrame:
     """
     Analyzes the most recent match data.
@@ -237,6 +241,7 @@ def latest_match() -> pd.DataFrame:
         pd.DataFrame: Analysis results for the latest match
     """
     return analyze_ccm(get_match_data())
+
 
 def test_select() -> None:
     """
@@ -257,6 +262,19 @@ def test_select() -> None:
     all = pd.melt(all,id_vars=['team_id'])
     print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
 
+
+def get_chartbuilder_ccm_data() -> pd.DataFrame:
+    all_match_data = get_match_data()
+    event_keys = all_match_data['event_key'].unique().tolist()
+
+    r = []
+    for event_key in event_keys:
+        filtered_for_event = all_match_data[ all_match_data['event_key'] == event_key]
+        ccm_calcs = analyze_ccm(filtered_for_event)
+        ccm_calcs['event_key'] = event_key
+        r.append(ccm_calcs)
+
+    return pd.concat(r)
 
 def matches_over_time() -> pd.DataFrame:
     """

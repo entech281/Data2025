@@ -7,4 +7,4 @@ venv
 .streamlit/secrets.toml
 duckdb.exe
 .data
-.dlt
+_old
