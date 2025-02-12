@@ -174,7 +174,7 @@ if team is not None:
         st.info("No tag data to display :slightly_frowning_face:")
         st.info("Here is a squirrel to make you feel less sad")
         st.image("./static/squirrel.png", width=75)
-        st.link_button("Image credit", "https://xkcd.com/1503")
+        st.link_button("Image credit (Click me)", "https://xkcd.com/1503")
     else:
         st.altair_chart(c)
 
