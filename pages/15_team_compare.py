@@ -41,6 +41,15 @@ if team1 and team2 and len(events) > 0:
                 st.caption(f"Event: {event}")
                 col1, col2, col3 = st.columns(3)
                 
+                if event_rankings.loc[event_rankings['team_number'] == team1, 'oprs'].empty:
+                    st.info(f"Sorry, looks like I don't have any info for team {team1}")
+                    continue
+
+                if event_rankings.loc[event_rankings['team_number'] == team2, 'oprs'].empty:
+                    st.info(f"Sorry, looks like I don't have any info for team {team2}")
+                    continue
+
+
                 t1_opr = float(event_rankings.loc[event_rankings['team_number'] == team1, 'oprs'].iloc[0])
                 t2_opr = float(event_rankings.loc[event_rankings['team_number'] == team2, 'oprs'].iloc[0])
                 t1_rank = int(event_rankings.loc[event_rankings['team_number'] == team1, 'rank'].iloc[0])
@@ -132,32 +141,36 @@ if team1 and team2 and len(events) > 0:
     
     # Create comparison chart with proper numeric conversions
     comparison_data = []
-    for metric in metrics:
-        val_team1 = float(team1_stats[metric].iloc[0][0])
-        val_team2 = float(team2_stats[metric].iloc[0][0])
-        comparison_data.append({
-            'Metric': metric,
-            f'Team {team1}': val_team1,
-            f'Team {team2}': val_team2,
-            'Difference': val_team1 - val_team2
-        })
+    if not team1_stats.empty and not team2_stats.empty:
+        for metric in metrics:
+            val_team1 = float(team1_stats[metric].iloc[0][0])
+            val_team2 = float(team2_stats[metric].iloc[0][0])
+            comparison_data.append({
+                'Metric': metric,
+                f'Team {team1}': val_team1,
+                f'Team {team2}': val_team2,
+                'Difference': val_team1 - val_team2
+            })
 
     comparison_df = pd.DataFrame(comparison_data)
 
     # Determine min and max values for the bar chart column
-    diff_min = comparison_df['Difference'].min()
-    diff_max = comparison_df['Difference'].max()
+    if comparison_df.empty:
+        st.info("Sorry, looks like I don't have enough info on one or both of the selected teams :disappointed_relieved:")
+    else:  
+        diff_min = comparison_df['Difference'].min()
+        diff_max = comparison_df['Difference'].max()
 
-    st.dataframe(
-        comparison_df,
-        column_config={
-            'Metric': 'Metric',
-            f'Team {team1}': st.column_config.NumberColumn(f'Team {team1}', format="%.2f"),
-            f'Team {team2}': st.column_config.NumberColumn(f'Team {team2}', format="%.2f"),
-            'Difference': st.column_config.NumberColumn('Difference')
-        },
-        hide_index=True
-    )
+        st.dataframe(
+            comparison_df,
+            column_config={
+                'Metric': 'Metric',
+                f'Team {team1}': st.column_config.NumberColumn(f'Team {team1}', format="%.2f"),
+                f'Team {team2}': st.column_config.NumberColumn(f'Team {team2}', format="%.2f"),
+                'Difference': st.column_config.NumberColumn('Difference')
+            },
+            hide_index=True
+        )
 
     # Pit data comparison
     st.subheader("Robot Specifications")
@@ -185,3 +198,4 @@ if team1 and team2 and len(events) > 0:
         st.info("Here is a squirrel to make you feel less sad")
         st.image("./static/squirrel.png", width=75)
         st.link_button("Image credit (Click me)", "https://xkcd.com/1503")
+        
