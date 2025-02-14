@@ -49,18 +49,18 @@ if team1 and team2 and len(events) > 0:
                 # Compute delta for OPR
                 delta_opr = t1_opr - t2_opr
                 if delta_opr > 0:
-                    opr_status = f"Team {team1} leads by {abs(delta_opr):.1f}"
+                    opr_status = f"Team {team1} leads"
                 elif delta_opr < 0:
-                    opr_status = f"Team {team2} leads by {abs(delta_opr):.1f}"
+                    opr_status = f"Team {team2} leads"
                 else:
                     opr_status = "Tied"
                 
                 # Compute delta for Rank. (Lower rank is better.)
                 delta_rank = t2_rank - t1_rank  
                 if delta_rank > 0:
-                    rank_status = f"Team {team1} leads by {delta_rank}"
+                    rank_status = f"Team {team1} leads"
                 elif delta_rank < 0:
-                    rank_status = f"Team {team2} leads by {abs(delta_rank)}"
+                    rank_status = f"Team {team2} leads"
                 else:
                     rank_status = "Tied"
                 
@@ -87,18 +87,18 @@ if team1 and team2 and len(events) > 0:
             # OPR Comparison for overall averages
             delta_opr_avg = avg_team1['oprs'] - avg_team2['oprs']
             if delta_opr_avg > 0:
-                overall_opr_status = f"Team {team1} leads by {abs(delta_opr_avg):.1f}"
+                overall_opr_status = f"Team {team1} leads"
             elif delta_opr_avg < 0:
-                overall_opr_status = f"Team {team2} leads by {abs(delta_opr_avg):.1f}"
+                overall_opr_status = f"Team {team2} leads"
             else:
                 overall_opr_status = "Tied"
             
             # Rank Comparison for overall averages (note: lower is better)
             delta_rank_avg = avg_team2['rank'] - avg_team1['rank']
             if delta_rank_avg > 0:
-                overall_rank_status = f"Team {team1} leads by {delta_rank_avg:.1f}"
+                overall_rank_status = f"Team {team1} leads"
             elif delta_rank_avg < 0:
-                overall_rank_status = f"Team {team2} leads by {abs(delta_rank_avg):.1f}"
+                overall_rank_status = f"Team {team2} leads"
             else:
                 overall_rank_status = "Tied"
         
