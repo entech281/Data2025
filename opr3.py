@@ -222,17 +222,6 @@ def calculate_match_by_match(all_data: pd.DataFrame) -> pd.DataFrame:
 
     return  pd.concat(result_dfs)
 
-def fake_analyze() -> pd.DataFrame:
-    """
-    Performs test analysis using sample match data.
-
-    Returns:
-        pd.DataFrame: Results of match-by-match analysis
-    """
-    d = get_match_data()
-    r = calculate_match_by_match(get_match_data())
-    return r
-
 
 def latest_match() -> pd.DataFrame:
     """
@@ -242,27 +231,6 @@ def latest_match() -> pd.DataFrame:
         pd.DataFrame: Analysis results for the latest match
     """
     return analyze_ccm(get_match_data())
-
-
-def test_select() -> None:
-    """
-    Tests metric selection and weighting functionality.
-    Prints weighted analysis results in tabular format.
-    """
-    original = latest_match()
-    #print( df.columns)
-    selected_metrics = ['score_z','foul_count_z']
-    weights=[1.0,-0.1]
-    selected_metrics = original[selected_metrics]
-    weighted = selected_metrics.mul(weights)
-    weighted['total_z'] = weighted.sum(axis=1)
-    #print(weighted)
-    all = pd.concat([original[['team_id']], weighted],axis=1)
-    all = all.sort_values(by='total_z', ascending=False)
-    all['rank'] = all['total_z'].rank(ascending=False)
-    all = pd.melt(all,id_vars=['team_id'])
-    print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
-
 
 def get_ccm_data_for_match(event_key):
     all_data = get_ccm_data()
@@ -286,30 +254,6 @@ def get_ccm_data() -> pd.DataFrame:
 
     return pd.concat(r)
 
-def matches_over_time() -> pd.DataFrame:
-    """
-    Analyzes match data over time using incremental batches.
-
-    Returns:
-        pd.DataFrame: Time series analysis of match performance
-    """
-    return calculate_match_by_match(get_match_data())
-
-if __name__  == '__main__':
-    all = latest_match()
-    all = all.reset_index()
-    all = all.set_index('team_id')
-    all = all.T
-    print(all.columns)
-    print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
-    #pd.set_option('display.max_columns',None)
-    #test_select()
-    #start = time.time()
-    #d = get_match_data()
-    #r = calculate_match_by_match(get_match_data())
-    #r.to_csv('all_the_things.csv', float_format='%.2f')
-    #print (r.shape)
-    #print ( f"Total time: {time.time()-start} sec") #0.32 sec on my laptop for all matches, read off disk=0.1
 
 
 
@@ -363,3 +307,12 @@ def calculate_raw_opr(matches: pd.DataFrame) -> pd.DataFrame:
     final_results = pd.concat([teams_df, results], axis=1)
     
     return final_results.sort_values(by=['score'], ascending=False)
+
+if __name__  == '__main__':
+    all = latest_match()
+    all = all.reset_index()
+    all = all.set_index('team_id')
+    all = all.T
+    print(all.columns)
+    print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
+

@@ -7,7 +7,6 @@ con = duckdb.connect(f"md:frc_2025?motherduck_token={ACCESS_TOKEN}")
 
 def copy_db_to_local():
 
-
     EXPORT_PATH="./data/frc2025_export"
     con.execute(f"EXPORT DATABASE  '{EXPORT_PATH}' ")
     local_con = duckdb.connect("data/frc2025_copy.duckdb")
