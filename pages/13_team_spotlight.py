@@ -103,9 +103,10 @@ if team is not None and events is not None and len(events) > 0:
         match_stats.append(with_z)
 
         
-    
+    team_stats = pd.DataFrame()
     # Combine match stats
-    team_stats = pd.concat(match_stats)
+    if len(match_stats) > 0:
+        team_stats = pd.concat(match_stats)
     
     # st.write(f"Stats shape: {team_stats.shape}")  # Debug
     
