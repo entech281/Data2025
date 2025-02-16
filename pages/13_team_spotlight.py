@@ -1,3 +1,6 @@
+# //codes make you happy
+# //microwave chefing makes you wonder...
+
 import streamlit as st
 from motherduck import con
 import pandas as pd
@@ -90,60 +93,112 @@ if team is not None and events is not None and len(events) > 0:
     match_stats = []
     for i in range(1, len(team_matches) + 1):
         match_slice = team_matches.iloc[:i]
-
         raw_stats = calculate_raw_opr(match_slice)
         numeric_cols = raw_stats.select_dtypes(include=['float64', 'int64']).columns
         numeric_cols = [col for col in numeric_cols if col not in ['team_id', 'match_num']]
         with_z = add_zscores(raw_stats, numeric_cols)
-        
         with_z['match_num'] = i
         with_z = with_z[with_z['team_id'] == team]
         with_z = with_z.fillna(0)
-
         match_stats.append(with_z)
 
-        
     team_stats = pd.DataFrame()
-    # Combine match stats
     if len(match_stats) > 0:
         team_stats = pd.concat(match_stats)
     
-    # st.write(f"Stats shape: {team_stats.shape}")  # Debug
-    
-    # Select metrics and their z-scores
-    base_metrics = [col for col in team_stats.columns 
-                   if col not in ['team_id', 'margin', 'their_score', 'match_num']
-                   and not col.endswith('_z')]
-    
-    # Create chart dataframe
-    chart_df = pd.DataFrame({"Metric": [], "Trend": []})
-    
-    # Add both raw and z-score metrics
-    for metric in base_metrics:
-        raw_values = team_stats[metric].tolist()
-        z_values = team_stats[f"{metric}_z"].tolist()
-        
-        chart_df = pd.concat([
-            chart_df,
-            pd.DataFrame({
-                "Metric": [f"{metric} (Raw)", f"{metric} (Z-Score)"],
-                "Trend": [raw_values, z_values]
-            })
-        ], ignore_index=True)
-    
-    st.dataframe(
-        chart_df,
-        column_config={
-            "Metric": "Performance Metric",
-            "Trend": st.column_config.LineChartColumn(
-                "Performance Over Time",
-                width="medium"
-            )
-        },
-        hide_index=True
-    )
+    # Define the segments for performance metrics:
+    segments = {
+        "Coral Metrics": ["auto_coral_points", "auto_coral_count","teleop_coral_points", "teleop_coral_count"],
+        "Algae Metrics": ["net_algae_count", "algae_points", "wall_algae_count"],
+        "RP": ["rp"]
+    }
 
-    
+    coral_df = pd.DataFrame()
+    algae_df = pd.DataFrame()
+    rp_df = pd.DataFrame()
+    # Loop through each segment and build a separate dataframe to display.
+    with st.container(border=True):
+        for segment_name, metrics_list in segments.items():
+            seg_df = pd.DataFrame({"Metric": [], "Trend": []})
+            for metric in metrics_list:
+                # Confirm both the raw and zscore versions exist.
+                if metric in team_stats.columns and f"{metric}_z" in team_stats.columns:
+                    raw_values = team_stats[metric].tolist()
+                    z_values = team_stats[f"{metric}_z"].tolist()
+                    seg_df = pd.concat([
+                        seg_df,
+                        pd.DataFrame({
+                            "Metric": [f"{metric} (Raw)", f"{metric} (Z-Score)"],
+                            "Trend": [raw_values, z_values]
+                        })
+                    ], ignore_index=True)
+            print(seg_df.columns[0])
+            if "coral" in seg_df.iloc[0][0]:
+                coral_df = seg_df
+            elif "algae" in seg_df.iloc[0][0]:
+                algae_df = seg_df
+            elif "rp" in seg_df.iloc[0][0]:
+                rp_df = seg_df
+
+            # st.subheader(segment_name)
+            # st.dataframe(
+            #     seg_df,
+            #     column_config={
+            #         "Metric": "Metric",
+            #         "Trend": st.column_config.LineChartColumn(
+            #             "Trend Over Matches",
+            #             width="medium"
+            #         )
+            #     },
+            #     hide_index=True
+            # )
+
+    # This should definatley be a function
+    cols = st.columns(2)
+    with cols[0]:
+        st.divider()
+        st.subheader("Coral Metrics")
+        st.dataframe(
+            coral_df,
+            column_config={
+                "Metric": "Metric",
+                "Trend": st.column_config.LineChartColumn(
+                    "Trend Over Matches",
+                    width="medium"
+                )
+            },
+            hide_index=True
+        )
+        st.divider()
+
+    with cols[1]:
+        st.subheader("Algae Metrics")
+        st.dataframe(
+            algae_df,
+            column_config={
+                "Metric": "Metric",
+                "Trend": st.column_config.LineChartColumn(
+                    "Trend Over Matches",
+                    width="medium"
+                )
+            },
+            hide_index=True
+        )
+
+        st.subheader("RP Metrics")
+        st.dataframe(
+            rp_df,
+            column_config={
+                "Metric": "Metric",
+                "Trend": st.column_config.LineChartColumn(
+                    "Trend Over Matches",
+                    width="medium"
+                )
+            },
+            hide_index=True
+        )
+
+
 
 
 if team is not None:
