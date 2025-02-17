@@ -1,11 +1,11 @@
 import dlt
 import tba
-import motherduck
 import util
 import logging
 import os
+import streamlit as st
 from datetime import datetime
-
+import motherduck
 logger = logging.getLogger(__name__)
 loop_delay_secs=5
 
@@ -46,20 +46,16 @@ def district_rankings_source():
     yield from tba.get_rankings_for_district()
 
 
-def sync(password):
-    os.environ['2025SC__DESTINATION__MOTHERDUCK__CREDENTIALS__DATABASE'] = 'frc_2025'
-    os.environ['2025SC__DESTINATION__MOTHERDUCK__CREDENTIALS__PASSWORD'] = password
-    for key in sorted(os.environ.keys()):
-        print(f"{key}={os.environ[key]}")
-    
+def sync():
+
     print("DLT Vars:",dlt.config)
     pipeline = dlt.pipeline(
         pipeline_name='2025sc',
-        destination='motherduck',
+        destination=dlt.destinations.duckdb(motherduck.con),
         dataset_name='tba'
     )
 
-    event_list =  ['2025sccha','2025sccmp','2025schar', '2024gacmp']
+    event_list =  ['2025week0','2025sccha','2025sccmp','2025schar']
 
     logger.info("Sync Teams...")
     load_info = pipeline.run(sync_teams_source(event_list))

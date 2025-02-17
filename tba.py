@@ -20,6 +20,20 @@ TBA_API_ROOT = 'https://www.thebluealliance.com/api/v3/'
 DISTRICT_KEY='2025fsc'
 DISTRICT_EVENTS=[ '2025schar','2025sccha', '2025sccmp' ]
 
+def change_dict_yesnos_to_booleans(d: dict) -> dict:
+    def change_yesno_boolean_to_zero_one(value):
+        if value in ["Yes", "Y", "Yup", "yes", "y", True,"true","True"]:
+            return 1
+        if value in ["N", "n", "No", 'no', False,"false","False"]:
+            return 0
+        return value
+
+    r = {}
+
+    for k,v in d.items():
+        r[k] = change_yesno_boolean_to_zero_one(v)
+    return r
+
 
 def team_number_from_key(frc_team_key):
     return int(frc_team_key.replace('frc', ''))
@@ -56,7 +70,7 @@ def get_matches_for_event(event_name):
     matches= _get("/event/{event_key}/matches".format(event_key=event_name))
 
     def flatten_match(match):
-        r = get_fields(match, [ 'actual_time','match_number','key','event_key','comp_level'])
+        r = get_fields(match, ['time','predicted_time','set_number','winning_alliance', 'actual_time','match_number','key','event_key','comp_level'])
         blue_teams = match["alliances"]["blue"]["team_keys"]
         red_teams = match["alliances"]["red"]["team_keys"]
         r["red1"] = team_number_from_key(red_teams[0])
@@ -68,10 +82,15 @@ def get_matches_for_event(event_name):
         r["blue3"] = team_number_from_key(blue_teams[2])
         r['blue_score'] = match['alliances']['blue']['score']
 
-        r.update(flatten(match['score_breakdown']))
+        if match['score_breakdown']:
+            score_breakdown = flatten(match['score_breakdown'])
+            score_breakdown = change_dict_yesnos_to_booleans(score_breakdown)
+            r.update(flatten(score_breakdown))
+
         return r
 
-    return [flatten_match(m) for m in matches]
+    retval = [flatten_match(m) for m in matches]
+    return retval
 
 
 def zero_if_column_missing(df,col_name):

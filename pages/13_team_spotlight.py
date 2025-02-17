@@ -1,23 +1,22 @@
 import streamlit as st
-from motherduck import con
-import pandas as pd
-from cached_data import get_teams,get_event_list,get_matches
+from pages_util.event_selector import event_selector
+from cached_data import get_matches,get_team_list
 from opr3 import *
 import altair as alt
-import math
 from PIL import Image
 import io
 from pages_util.style import  st_horizontal
 
-
+selected_event = event_selector()
 st.title("Team Spotlight")
 
-team_list = sorted(get_teams()['team_number'].fillna(0).values.tolist())
+
+team_list = get_team_list(selected_event)
 
 
 # TODO
 # Make all of these one one sql statement
-event_list = get_event_list()
+
 matches_df =get_matches()
 tags_df = con.sql(f"""SELECT te.team_number, count(ta.tag), ta.tag
                         FROM tba.teams te
@@ -36,14 +35,11 @@ INNER JOIN tba.oprs o ON (er.team_number = o.team_number AND er.event_key = o.ev
 """).df()
  
 
-
-
 team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team))
-events = st.pills("Event", event_list, selection_mode="multi")
 
 
 if team is not None:
-    team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin(events))]
+    team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin([selected_event]))]
     
     if not team_ranking.empty:
 
@@ -75,6 +71,11 @@ if team is not None:
         st.info("No ranking info")
 
 
+old_code="""
+this duplicates a lot of code already in opr3.
+also we realized we need to display the data very
+differently based on watching a day of matches. 
+see new proprosed version
 
 if team is not None and events is not None and len(events) > 0:
     st.subheader(f"Team {team} Performance")
@@ -142,7 +143,7 @@ if team is not None and events is not None and len(events) > 0:
         },
         hide_index=True
     )
-
+"""
     
 
 

@@ -1,20 +1,16 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
-import plotly.express as px
-
-# Load your DataFrame (replace this with your actual data loading method)
 import opr3
+from pages_util.event_selector import event_selector
 
-from cached_data import get_event_list
+st.title("Team Ranking Based on Selected Characteristics")
+
+selected_event = event_selector()
 
 
-st.header("Select Event")
-event_list = get_event_list()
-event_to_look_at = st.pills("Event",event_list , selection_mode="single")
-df = opr3.get_ccm_data_for_match(event_to_look_at)
+df = opr3.get_ccm_data_for_event(selected_event)
 df = opr3.select_z_score_columns(df, ['team_id'])
-
 
 def compute_weighted_score(df, selected_chars, weights):
     weighted_scores = df[selected_chars].mul(weights).sum(axis=1)
@@ -35,14 +31,14 @@ def computed_weighted_components(original,selected_metrics, weights ):
     all = pd.melt(all, id_vars=['team_id'],var_name='attribute',value_name='weighted_score')
     return all
 
-st.title("Team Ranking Based on Selected Characteristics")
+
 
 # Select characteristics
-available_chars = [col for col in df.columns if col != "team_id"]
+available_chars = sorted([col for col in df.columns if col != "team_id"])
 selected_chars = st.pills("Select Characteristics", options=available_chars, default=['score_z'], selection_mode="multi")
 
-if len(selected_chars) == 0 :
-    st.write("Select at least one characteristic to proceed.")
+if len(selected_chars) == 0:
+    st.header ("Select at least one characteristic and one Event")
     st.stop()
 
 weights = {}

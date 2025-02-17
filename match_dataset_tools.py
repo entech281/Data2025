@@ -6,6 +6,37 @@ from dataclasses import dataclass
 from typing import Union
 
 
+def filter_for_team( df: pd.DataFrame, team_id:int)-> pd.DataFrame:
+    return df[ df['team_id'] == team_id ]
+
+def sum_matching_columns(df: pd.DataFrame, regex: str, new_column_name: str = "sum_matched",
+                         remove_matched: bool = False) -> pd.DataFrame:
+    """
+    Adds a new column to the DataFrame that is the sum of columns matching the given regular expression.
+    Optionally removes the matched columns after summing.
+
+    Parameters:
+        df (pd.DataFrame): The input DataFrame.
+        regex (str): Regular expression pattern to match column names.
+        new_column_name (str): Name of the new column to store the sum.
+        remove_matched (bool): Whether to remove matched columns after summing.
+
+    Returns:
+        pd.DataFrame: A new DataFrame with the added column, optionally without the matched columns.
+    """
+    matched_columns = [col for col in df.columns if re.search(regex, col)]
+
+    if not matched_columns:
+        raise ValueError("No columns matched the given regex.")
+
+    df[new_column_name] = df[matched_columns].sum(axis=1)
+
+    if remove_matched:
+        df = df.drop(columns=matched_columns)
+
+    return df
+
+
 def add_zscores ( df: pd.DataFrame, cols: list[str]) -> pd.DataFrame:
     new_df = df.copy()
     cols = set(df.columns)
@@ -31,6 +62,10 @@ def find_columns_with_suffix(df: pd.DataFrame, suffix:str ):
             r.append(c)
     return r
 
+def remove_from_list (original:list[str],to_remove:list[str] ) -> list[str]:
+    return list( set(original) - set(to_remove))
+
+"""
 def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
 
     column_map = {
@@ -56,6 +91,7 @@ def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
             pass
 
     return column_map
+"""
 
 
 def unstack_data_from_color(matches: pd.DataFrame) -> pd.DataFrame:

@@ -1,16 +1,17 @@
 import streamlit as st
 import pandas as pd
 from motherduck import con
+from cached_data import get_team_list
+from pages_util.event_selector import event_selector
 
 st.set_page_config(layout="wide")
 st.title("Log a Tag ")
-st.subheader("add a row into table scouting.tags in motherduck database")
-st.caption("""
-this is an example of a screen for end users. it allows them to do somethign simply and safely
-In this case, simply adding a tag observation as a row in a table, but with guiderails on valid values
-""")
-df = con.sql("select team_number from tba.teams").df()
-team_list = df['team_number'].values.tolist()
+
+selected_event = event_selector()
+
+
+
+team_list = get_team_list(selected_event)
 available_tags = [
     "Good Driver", "Bad Driver", "Unreliable", "Fast", "Normal-Speed", "Slow", "Pizza Box", "Disable"
 ]

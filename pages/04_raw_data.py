@@ -1,11 +1,16 @@
 import streamlit as st
 import cached_data
-
 from motherduck import con
-from PIL import Image
 import base64
+from pages_util.event_selector import event_selector
 
 st.set_page_config(layout="wide")
+
+st.title("Team Ranking Based on Selected Characteristics")
+
+selected_event = event_selector()
+
+
 
 def bytes_to_base64(byte_array):
     if byte_array is None:
@@ -29,9 +34,8 @@ display_config = {
 #getting these from cache-- so that we can save database resources
 # in production, we'd cache things that dont change often
 
-events = cached_data.get_teams()  # get from cache this will hardly ever change
-matches= cached_data.get_matches()  #this one is not executed each page refresh.
-rankings = cached_data.get_rankings()
+matches= cached_data.get_matches_for_event(selected_event)  #this one is not executed each page refresh.
+rankings = cached_data.get_tba_oprs_and_ranks_for_event(selected_event)
 
 pit = con.sql("SELECT * FROM scouting.pit").df()
 
@@ -41,8 +45,6 @@ if 'auto_route' in pit.columns:
 
 
 st.title("Raw Data")
-st.header(f"Events ({len(events)})")
-st.dataframe(events,column_config=display_config)
 
 st.header(f"Matches  ({len(matches)})")
 st.dataframe(matches,column_config=display_config)
