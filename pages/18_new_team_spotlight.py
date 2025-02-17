@@ -42,11 +42,11 @@ metric_grid.metric("Record", f"{team_stats['wins']}-{team_stats['losses']}-{team
 
 st.subheader("RP Averages Per match")
 metric_grid = grid([1,1,1,1,1])
-metric_grid.metric('Total',team_stats['avg_rp'])
-metric_grid.metric('Win/Tie',team_stats['avg_win_rp'])
-metric_grid.metric('Auto',team_stats['avg_auto_rp'])
-metric_grid.metric('Coral',team_stats['avg_coral_rp'])
-metric_grid.metric('Barge',team_stats['avg_barge_rp'])
+metric_grid.metric('Total',f"team_stats['avg_rp']:.2f")
+metric_grid.metric('Win/Tie',f"team_stats['avg_win_rp']:.2f")
+metric_grid.metric('Auto',f"team_stats['avg_auto_rp']:.2f")
+metric_grid.metric('Coral',f"team_stats['avg_coral_rp']:.2f")
+metric_grid.metric('Barge',f"team_stats['avg_barge_rp']:.2f")
 
 
 st.subheader("Performance: Zscores")
