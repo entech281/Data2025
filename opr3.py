@@ -4,22 +4,14 @@ from motherduck import con
 import cached_data
 import numpy as np
 from scipy.stats import zscore
-from tabulate import tabulate
+import cachetools.func
 import time
-from match_dataset_tools import unstack_data_from_color,drop_columns_with_word_in_column_name,add_zscores,find_columns_with_suffix
+from match_dataset_tools import unstack_data_from_color,drop_columns_with_word_in_column_name,add_zscores,find_columns_with_suffix,sum_matching_columns,remove_from_list
+from tabulate import tabulate
+CCM_CACHE_SECONDS=60
 
 
 def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
-    """
-    Creates a mapping of column names based on the specified color.
-
-    Args:
-        columns (list): List of column names.
-        color (str): The color to base the mapping on ('red' or 'blue').
-
-    Returns:
-        tuple: A dictionary mapping original column names to new names, and a list of automatically mapped fields.
-    """
     column_map = {
         color + "1":"t1",
         color + "2":"t2",
@@ -44,17 +36,7 @@ def column_map_for_color(columns:list,color:str) -> ( dict[str,str],list[str]):
     return column_map,list(automapped_fields)
 
 
-def calculate_opr_ccwm_dpr(matches: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculates OPR (Offensive Power Rating), CCWM (Calculated Contribution to Winning Margin),
-    and DPR (Defensive Power Rating) for teams based on match data.
-
-    Args:
-        matches (pd.DataFrame): DataFrame containing match data with red/blue alliance teams and scores
-
-    Returns:
-        pd.DataFrame: Sorted DataFrame with team statistics including OPR, CCWM, DPR calculations
-    """
+def _calculate_opr_ccwm_dpr(matches: pd.DataFrame) -> pd.DataFrame:
     #get the unique list of teams
     team_list = pd.unique(matches[['red1','red2','red3','blue1','blue2','blue3']].values.ravel('K'))
     #print("Unique Teams: One column, num rows= Nteams ")
@@ -99,53 +81,11 @@ def calculate_opr_ccwm_dpr(matches: pd.DataFrame) -> pd.DataFrame:
     teams_2 = pd.DataFrame(team_list,columns=['team_id'])
     results_all = pd.concat([teams_2, results_2], axis=1)
 
-    """
-            team_id        opr       ccwm
-        16     1771  59.877861  40.854197
-        4      2974  49.007513  27.565074
-        19      343  39.377108  11.797834
-        ....    
-    """
     return results_all.sort_values(by=['score'],ascending=False)
 
 
-def get_match_data() -> pd.DataFrame:
-    """
-    Retrieves match data from parquet file for analysis.
-
-    Returns:
-        pd.DataFrame: DataFrame containing match data
-    """
-    matches = con.sql("select * from frc_2025.tba.matches").df()
-
-    return matches
-
-
-def remove_from_list (original:list[str],to_remove:list[str] ) -> list[str]:
-    """
-    Removes specified elements from a list.
-
-    Args:
-        original (list[str]): Original list of strings
-        to_remove (list[str]): List of strings to remove
-
-    Returns:
-        list[str]: New list with specified elements removed
-    """
-    return list( set(original) - set(to_remove))
-
-
 def add_zscores(df:pd.DataFrame, cols:list[str]) -> pd.DataFrame:
-    """
-    Adds z-score columns for specified numeric columns in DataFrame.
 
-    Args:
-        df (pd.DataFrame): Input DataFrame
-        cols (list[str]): List of column names to calculate z-scores for
-
-    Returns:
-        pd.DataFrame: DataFrame with added z-score columns (suffixed with '_z')
-    """
     new_df = df.copy()
     for c in cols:
         new_df[c + "_z"] = zscore(df[c])
@@ -153,94 +93,126 @@ def add_zscores(df:pd.DataFrame, cols:list[str]) -> pd.DataFrame:
 
 
 def analyze_ccm(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Performs Competitive Component Matrix analysis on match data.
-
-    Args:
-        df (pd.DataFrame): DataFrame containing match data
-
-    Returns:
-        pd.DataFrame: Processed DataFrame with CCM analysis results and z-scores
-    """
-    s = time.time()
     matches = df
-    #print(f"Read data: {time.time()-s} sec")
-    r = calculate_opr_ccwm_dpr(matches)
-
-    r = drop_columns_with_word_in_column_name(r,'threshold')
-    #r.to_csv('all_the_things.csv',float_format='%.2f')
-
+    r = _calculate_opr_ccwm_dpr(matches)
+    r = drop_columns_with_word_in_column_name(r,'threshold') #robot1,2, 3 are robot specific, we can get those later
+    r = drop_columns_with_word_in_column_name(r, '_robot')
     cols_to_use = remove_from_list(r.columns, [ 'team_id'])
-    
     with_z = add_zscores(r, cols_to_use)
-
-    #print(with_z.columns)
-    #c = find_columns_with_suffix(with_z,'z')
-    #with_z['weight']= 0
-
-    #weights = pd.DataFrame([0] * len(c), index=c).T
-    #weights['auto_speaker_note_points_z'] = 0.1
-    #weights['end_game_total_stage_points_z'] = 5
-
-
-    #for c in with_z.columns:
-    #   if c.endswith("_z"):
-    #     with_z[c +"_w" ] = with_z[c] * weights.iloc[0][c]
-
-    #weighted_columns = find_columns_with_suffix(with_z,"_z") +[ "team_id"]
-    #print(weighted_columns)
-    #r = with_z[weighted_columns]
-    #weight_col= r.pop('weight')
-    #r.insert(0, 'weight', weight_col)
-    #r = r.T
-    #print(r)
-
-    #print(r.columns)
-    #print(tabulate(r[r.columns[-4:]], headers='keys', tablefmt='psql', floatfmt=".2f"))
     return with_z
 
-def calculate_match_by_match(all_data: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculates team performance metrics incrementally over groups of matches.
 
-    Args:
-        all_data (pd.DataFrame): DataFrame containing all match data
+def add_scoring_computations(match_data_2025: pd.DataFrame) -> pd.DataFrame:
+    #it would reduce the code here to do this inside of calculate_opr_ccwm_dpr, but i dont
+    #want that function to have season specific stuff, so we adjust here even though its a bit more work
 
-    Returns:
-        pd.DataFrame: Concatenated results of incremental analyses
-    """
-    batch = 0
-    batch_size = 5
-    result_dfs = []
+    match_data_2025['blue_total_coral_points'] = match_data_2025['blue_teleop_coral_points'] + match_data_2025['blue_auto_coral_points']
+    match_data_2025['red_total_coral_points'] = match_data_2025['red_teleop_coral_points'] + match_data_2025['red_auto_coral_points']
+    match_data_2025['blue_total_coral_count'] = match_data_2025['blue_teleop_coral_count'] + match_data_2025['blue_auto_coral_count']
+    match_data_2025['red_total_coral_count'] = match_data_2025['red_teleop_coral_count'] + match_data_2025['red_auto_coral_count']
 
-    while batch < len(all_data):
-        batch += batch_size
-        print(f"Computing, batch size={batch}")
-        r = analyze_ccm(all_data.head(batch))
-        r['batch'] = batch
-        result_dfs.append(r)
+    #rp calculations
+    #annoyting: this is different than the code here:
+    #def get_ranking_point_summary_for_event(event_key:str) -> pd.DataFrame:
+    #but that version is not vectorized
 
-    return  pd.concat(result_dfs)
+    # 3 rp for win
+    # 1 rp for tie
+    def win_rp(row):
+        if row['comp_level'] != 'qm':
+            return pd.Series({
+                'blue_win_rp': 0,
+                'red_win_rp': 0
+            })
+        if row['blue_score'] > row['red_score']:
+            return pd.Series({
+                'blue_win_rp': 3,
+                'red_win_rp': 0
+            })
+        elif row['blue_score'] < row['red_score']:
+            return pd.Series({
+                'blue_win_rp': 0,
+                'red_win_rp': 3
+            })
+        else: #equal
+            return pd.Series({
+                'blue_win_rp': 1,
+                'red_win_rp': 1
+            })
+    match_data_2025[['blue_win_rp','red_win_rp']] = match_data_2025.apply(win_rp,axis=1)
+
+    # 1 rp for auto: all three must move and at least one coral in auto
+    def auto_rp(row):
+        if row['comp_level'] != 'qm':
+            return pd.Series({
+                'blue_auto_rp': 0,
+                'red_auto_rp': 0
+            })
+
+        return pd.Series({
+            'blue_auto_rp': (1 if row['blue_auto_bonus_achieved'] == 1  else 0),
+            'red_auto_rp': (1 if row['red_auto_bonus_achieved'] == 1  else 0),
+        })
+    match_data_2025[['blue_auto_rp', 'red_auto_rp']] = match_data_2025.apply(auto_rp, axis=1)
+
+    def coral_rp(row):
+        if row['comp_level'] != 'qm':
+            return pd.Series({
+                'blue_coral_rp': 0,
+                'red_coral_rp': 0
+            })
+
+        return pd.Series({
+            'blue_coral_rp': (1 if row['blue_coral_bonus_achieved'] == 1  else 0),
+            'red_coral_rp': (1 if row['red_coral_bonus_achieved'] == 1  else 0),
+        })
+    match_data_2025[['blue_coral_rp', 'red_coral_rp']] = match_data_2025.apply(coral_rp, axis=1)
+
+    def barge_rp(row):
+        if row['comp_level'] != 'qm':
+            return pd.Series({
+                'blue_barge_rp': 0,
+                'red_barge_rp': 0
+            })
+
+        return pd.Series({
+            'blue_barge_rp': (1 if row['blue_barge_bonus_achieved'] == 1  else 0),
+            'red_barge_rp': (1 if row['red_barge_bonus_achieved'] == 1  else 0),
+        })
+    match_data_2025[['blue_barge_rp', 'red_barge_rp']] = match_data_2025.apply(barge_rp, axis=1)
+
+    return match_data_2025
 
 
-def latest_match() -> pd.DataFrame:
-    """
-    Analyzes the most recent match data.
+def aggregate_reef_scoring(match_data_2025: pd.DataFrame) -> pd.DataFrame:
 
-    Returns:
-        pd.DataFrame: Analysis results for the latest match
-    """
-    return analyze_ccm(get_match_data())
+    #TODO: clearly a more clever way that could also work in later seasons would be nice
+    match_data_2025 = sum_matching_columns(match_data_2025,r'^blue_auto_reef_bot_row_node','blue_auto_reef_bot_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025, r'^blue_auto_reef_mid_row_node', 'blue_auto_reef_mid_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025, r'^blue_auto_reef_top_row_node', 'blue_auto_reef_top_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025,r'^red_auto_reef_bot_row_node','red_auto_reef_bot_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025, r'^red_auto_reef_mid_row_node', 'red_auto_reef_mid_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025, r'^red_auto_reef_top_row_node', 'red_auto_reef_top_row',True)
 
-def get_ccm_data_for_match(event_key):
-    all_data = get_ccm_data()
-    all_data = all_data[all_data['event_key'] == event_key]
-    return all_data
+    match_data_2025 = sum_matching_columns(match_data_2025,r'^blue_teleop_reef_bot_row_node','blue_teleop_reef_bot_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025, r'^blue_teleop_reef_mid_row_node', 'blue_teleop_reef_mid_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025, r'^blue_teleop_reef_top_row_node', 'blue_teleop_reef_top_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025,r'^red_teleop_reef_bot_row_node','red_teleop_reef_bot_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025, r'^red_teleop_reef_mid_row_node', 'red_teleop_reef_mid_row',True)
+    match_data_2025 = sum_matching_columns(match_data_2025, r'^red_teleop_reef_top_row_node', 'red_teleop_reef_top_row',True)
 
-def select_z_score_columns( df, other_columns=[]):
+    return match_data_2025
+
+
+def select_z_score_columns( df:pd.DataFrame, other_columns=[]):
     weighted_columns = find_columns_with_suffix(df, "_z") +other_columns
     return df[weighted_columns]
 
+def select_non_zscore_columns(df: pd.DataFrame ):
+    zscore_columns = find_columns_with_suffix(df, "_z")
+    return df.drop(columns=zscore_columns)
+
+@cachetools.func.ttl_cache(maxsize=128, ttl=CCM_CACHE_SECONDS)
 def get_ccm_data() -> pd.DataFrame:
     all_match_data = cached_data.get_matches()
     event_keys = all_match_data['event_key'].unique().tolist()
@@ -248,71 +220,35 @@ def get_ccm_data() -> pd.DataFrame:
     r = []
     for event_key in event_keys:
         filtered_for_event = all_match_data[ all_match_data['event_key'] == event_key]
-        ccm_calcs = analyze_ccm(filtered_for_event)
+        filtered_for_event = aggregate_reef_scoring(filtered_for_event)
+        with_other_computations = add_scoring_computations(filtered_for_event)
+        ccm_calcs = analyze_ccm(with_other_computations)
         ccm_calcs['event_key'] = event_key
         r.append(ccm_calcs)
 
     return pd.concat(r)
 
 
+def get_ccm_data_for_event(event_key):
+    all_data = get_ccm_data()
+    all_data = all_data[all_data['event_key'] == event_key]
+    return all_data
 
 
-def calculate_raw_opr(matches: pd.DataFrame) -> pd.DataFrame:
-    """
-    Calculates raw OPR metrics without z-scores.
-    
-    Args:
-        matches (pd.DataFrame): DataFrame with match data
-        
-    Returns:
-        pd.DataFrame: Raw OPR values for each team
-    """
-    # Get unique teams
-    team_list = pd.unique(matches[['red1','red2','red3','blue1','blue2','blue3']].values.ravel('K'))
-    
-    # Get column mappings
-    numeric_columns = matches.select_dtypes(include='number').columns
-    red_col_map, automapped_fields = column_map_for_color(numeric_columns, 'red')
-    blue_col_map, _ = column_map_for_color(numeric_columns, 'blue')
-    
-    # Transform data
-    red_data = matches.rename(columns=red_col_map)
-    blue_data = matches.rename(columns=blue_col_map)
-    all_data = pd.concat([red_data, blue_data])
-    all_data['margin'] = all_data['score'] - all_data['their_score']
-    
-    # Build match matrix
-    m = []
-    for _, match in all_data.iterrows():
-        r = []
-        for team in team_list:
-            if match['t1'] == team or match['t2'] == team or match['t3'] == team:
-                r.append(1)
-            else:
-                r.append(0)
-        m.append(r)
-    m_m = np.matrix(m)
-    
-    # Calculate OPR
-    computed_cols = ['margin', 'their_score'] + automapped_fields
-    left_side = all_data[computed_cols]
-    c_c = np.matrix(left_side)
-    
-    pseudo_inverse = np.linalg.pinv(m_m)
-    computed = np.matmul(pseudo_inverse, c_c)
-    
-    # Format results
-    results = pd.DataFrame(computed, columns=computed_cols)
-    teams_df = pd.DataFrame(team_list, columns=['team_id'])
-    final_results = pd.concat([teams_df, results], axis=1)
-    
-    return final_results.sort_values(by=['score'], ascending=False)
+def get_ccm_data_for_event_separated(event_key):
+    all_data = get_ccm_data()
+    all_data = all_data[all_data['event_key'] == event_key]
+    return select_z_score_columns(all_data, ['team_id']),select_non_zscore_columns(all_data)
+
 
 if __name__  == '__main__':
-    all = latest_match()
-    all = all.reset_index()
-    all = all.set_index('team_id')
-    all = all.T
-    print(all.columns)
-    print(tabulate(all, headers='keys', tablefmt='psql', floatfmt=".3f"))
+    m = cached_data.get_matches_for_event('2025week0')
+    m = m[ ['key','red1', 'red2', 'red3', 'blue1','blue2','blue3','blue_score','red_score',
+            'blue_auto_bonus_achieved','blue_rp','blue_coral_bonus_achieved','blue_barge_bonus_achieved',
+            'red_auto_bonus_achieved', 'red_rp','red_coral_bonus_achieved', 'red_barge_bonus_achieved'
+    ]]
+    print(tabulate(m, headers='keys', tablefmt='psql', floatfmt=".3f"))
+    print(tabulate(cached_data.get_oprs_and_ranks_for_event('2025week0'), headers='keys', tablefmt='psql', floatfmt=".3f"))
+
+
 

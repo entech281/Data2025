@@ -2,17 +2,25 @@ import streamlit as st
 import pandas as pd
 from motherduck import con
 from opr3 import *
-from cached_data import get_teams
+from cached_data import get_team_list,get_event_list,get_most_recent_event
 from PIL import Image
 import io
 
 st.title("Pit Scouting Form")
 
+event_list = get_event_list()
+selected_event = st.pills("Event", event_list, default=get_most_recent_event(), selection_mode="single")
+if selected_event is None:
+    st.caption("Select an Event")
+    st.stop()
+
+# Get all teams
+all_teams = get_team_list(selected_event)
+
 # Get teams with existing pit data
 existing_teams = con.sql("SELECT DISTINCT team_number FROM scouting.pit").df()['team_number'].tolist()
 
-# Get all teams
-all_teams = sorted(get_teams()['team_number'].fillna(0).astype(int).values.tolist())
+
 
 # Create lists of teams with and without forms
 teams_without_forms = [t for t in all_teams if t not in existing_teams]

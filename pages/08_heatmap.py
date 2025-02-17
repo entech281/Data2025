@@ -4,19 +4,25 @@ import numpy as np
 from st_aggrid import AgGrid
 # Load your DataFrame (replace this with your actual data loading method)
 import opr3
-from cached_data import get_teams,get_event_list,get_matches
+from cached_data import get_event_list,get_matches,get_most_recent_event
+
 from match_dataset_tools import find_columns_with_suffix
 st.set_page_config(layout="wide")
 st.title("Z-score Heatmap")
 
 event_list = get_event_list()
-event_to_look_at = st.pills("Event",event_list , selection_mode="single")
-df = opr3.get_ccm_data_for_match(event_to_look_at)
+selected_event = st.pills("Event", event_list, default=get_most_recent_event(), selection_mode="single")
+if selected_event is None:
+    st.caption("Select an Event")
+    st.stop()
+
+df = opr3.get_ccm_data_for_event(selected_event)
 df = opr3.select_z_score_columns(df, ['team_id'])
 
 df.reset_index(drop=True, inplace=True)
 df = df.set_index('team_id')
 df = df.T
+df = df.sort_index()
 
 def style_dataframe(df):
     return df.style.set_table_styles(
