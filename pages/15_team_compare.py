@@ -1,19 +1,10 @@
 import streamlit as st
-from motherduck import con
-import pandas as pd
-from cached_data import get_team_list,get_event_list,get_most_recent_event,get_oprs_and_ranks_for_event,get_matches_for_event
+from pages_util.event_selector import event_selector
+from cached_data import get_team_list,get_oprs_and_ranks_for_event
 from opr3 import *
-import altair as alt
-from pages_util.team_stats import get_team_stats
 
 st.title("Team Comparison")
-
-event_list = get_event_list()
-selected_event = st.pills("Event", event_list, default=get_most_recent_event(), selection_mode="single")
-if selected_event is None:
-    st.caption("Select an Event")
-    st.stop()
-
+selected_event = event_selector()
 team_list = get_team_list(selected_event)
 
 # Team selection

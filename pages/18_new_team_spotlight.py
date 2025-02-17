@@ -1,9 +1,10 @@
 import streamlit as st
-from cached_data import get_event_list,get_most_recent_event,get_oprs_and_ranks_for_team,get_team_list
+from cached_data import get_event_list,get_oprs_and_ranks_for_team,get_team_list
 from opr3 import get_ccm_data_for_event_separated
 from match_dataset_tools import filter_for_team
 import altair as alt
 from pages_util.style import  st_horizontal
+from pages_util.event_selector import  event_selector
 from streamlit_extras.grid import grid
 import pandas as pd
 
@@ -12,11 +13,7 @@ event_list = get_event_list()
 st.title("Team Spotlight Performance")
 
 with st_horizontal():
-    selected_event = st.pills("Event", event_list, default=get_most_recent_event(), selection_mode="single")
-
-    if selected_event is None:
-        st.caption("Select a Team and an Event")
-        st.stop()
+    selected_event = event_selector()
     team_list = get_team_list(selected_event)
     team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team))
 

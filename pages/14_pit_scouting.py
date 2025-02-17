@@ -5,19 +5,11 @@ from opr3 import *
 from cached_data import get_team_list,get_event_list,get_most_recent_event
 from PIL import Image
 import io
+from pages_util.event_selector import event_selector
 
 st.title("Pit Scouting Form")
-
-event_list = get_event_list()
-selected_event = st.pills("Event", event_list, default=get_most_recent_event(), selection_mode="single")
-if selected_event is None:
-    st.caption("Select an Event")
-    st.stop()
-
-# Get all teams
+selected_event = event_selector()
 all_teams = get_team_list(selected_event)
-
-# Get teams with existing pit data
 existing_teams = con.sql("SELECT DISTINCT team_number FROM scouting.pit").df()['team_number'].tolist()
 
 

@@ -2,15 +2,14 @@ import streamlit as st
 import cached_data
 from motherduck import con
 import base64
-from cached_data import get_event_list,get_most_recent_event
+from pages_util.event_selector import event_selector
 
 st.set_page_config(layout="wide")
 
-event_list = get_event_list()
-selected_event = st.pills("Event", event_list, default=get_most_recent_event(), selection_mode="single")
-if selected_event is None:
-    st.caption("Select an Event")
-    st.stop()
+st.title("Team Ranking Based on Selected Characteristics")
+
+selected_event = event_selector()
+
 
 
 def bytes_to_base64(byte_array):

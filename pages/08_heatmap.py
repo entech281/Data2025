@@ -1,21 +1,12 @@
 import streamlit as st
-import pandas as pd
-import numpy as np
-from st_aggrid import AgGrid
-# Load your DataFrame (replace this with your actual data loading method)
 import opr3
-from cached_data import get_event_list,get_matches,get_most_recent_event
-
-from match_dataset_tools import find_columns_with_suffix
+from pages_util.event_selector import event_selector
 st.set_page_config(layout="wide")
+
+
 st.title("Z-score Heatmap")
 
-event_list = get_event_list()
-selected_event = st.pills("Event", event_list, default=get_most_recent_event(), selection_mode="single")
-if selected_event is None:
-    st.caption("Select an Event")
-    st.stop()
-
+selected_event = event_selector()
 df = opr3.get_ccm_data_for_event(selected_event)
 df = opr3.select_z_score_columns(df, ['team_id'])
 
