@@ -88,7 +88,7 @@ def get_robot_specific_data_from_matches( event_key:str) -> pd.DataFrame:
     team_list = get_team_list(event_key)
     matches = get_matches_for_event(event_key)
 
-    def _get_robot_specific_value(row, team_number: int, prefix: str, index: i )-> dict:
+    def _get_robot_specific_value(row, team_number: int, prefix: str, index: i )-> list:
         team_col = f"{prefix}{index}"
         suffix = f"robot{index}"
         if team_number in [row[team_col]]:
