@@ -2,7 +2,7 @@ requests
 polars
 tabulate
 streamlit
-numpy
+numpy==1.26.4
 streamlit-aggrid
 flatten_json
 jupyter
