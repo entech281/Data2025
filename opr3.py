@@ -218,6 +218,7 @@ def get_ccm_data() -> pd.DataFrame:
     all_match_data = cached_data.get_matches()
     print(f"Before Filter {len(all_match_data)}")
     all_match_data = all_match_data[ all_match_data["winning_alliance"].notna() ]
+    all_match_data = all_match_data[all_match_data["winning_alliance"] != '']
     print(f"After Filter {len(all_match_data)}")
     event_keys = all_match_data['event_key'].unique().tolist()
 
