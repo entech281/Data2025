@@ -88,6 +88,7 @@ def add_zscores(df:pd.DataFrame, cols:list[str]) -> pd.DataFrame:
 
     new_df = df.copy()
     for c in cols:
+        print(f"computing zscore for col {c} value {df[c]}")
         new_df[c + "_z"] = zscore(df[c])
     return new_df
 
