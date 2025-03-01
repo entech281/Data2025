@@ -32,21 +32,22 @@ if len(match_stats_z) == 0:
     st.caption("No Data For Selected Team somehow. Maybe they have no matches or are not here. ")
     st.stop()
 
+NO_DATA_VALUE=-1.0
 st.subheader("Basic Stats")
 metric_grid = grid([1,1,1,1,1])
-metric_grid.metric("Rank", team_stats['rank'],border=True)
-metric_grid.metric("Avg RP/match", team_stats['avg_rp'],border=True)
-metric_grid.metric("Opr", f"{team_stats['opr']:.2f}",border=True)
-metric_grid.metric("Dpr", f"{team_stats['dpr']:.2f}",border=True)
-metric_grid.metric("Record", f"{team_stats['wins']}-{team_stats['losses']}-{team_stats['ties']}",border=True)
+metric_grid.metric("Rank", team_stats.get('rank',NO_DATA_VALUE),border=True)
+metric_grid.metric("Avg RP/match", team_stats.get('avg_rp',NO_DATA_VALUE),border=True)
+metric_grid.metric("Opr", f"{team_stats.get('opr',NO_DATA_VALUE):.2f}",border=True)
+metric_grid.metric("Dpr", f"{team_stats.get('dpr',NO_DATA_VALUE):.2f}",border=True)
+metric_grid.metric("Record", f"{team_stats.get('wins',NO_DATA_VALUE)}-{team_stats.get('losses',NO_DATA_VALUE)}-{team_stats.get('ties',NO_DATA_VALUE)}",border=True)
 
 st.subheader("RP Averages Per match")
 metric_grid = grid([1,1,1,1,1])
-metric_grid.metric('Total',f"{team_stats['avg_rp']:.2f}")
-metric_grid.metric('Win/Tie',f"{team_stats['avg_win_rp']:.2f}")
-metric_grid.metric('Auto',f"{team_stats['avg_auto_rp']:.2f}")
-metric_grid.metric('Coral',f"{team_stats['avg_coral_rp']:.2f}")
-metric_grid.metric('Barge',f"{team_stats['avg_barge_rp']:.2f}")
+metric_grid.metric('Total',f"{team_stats.get('avg_rp',NO_DATA_VALUE):.2f}")
+metric_grid.metric('Win/Tie',f"{team_stats.get('avg_win_rp',NO_DATA_VALUE):.2f}")
+metric_grid.metric('Auto',f"{team_stats.get('avg_auto_rp',NO_DATA_VALUE):.2f}")
+metric_grid.metric('Coral',f"{team_stats.get('avg_coral_rp',NO_DATA_VALUE):.2f}")
+metric_grid.metric('Barge',f"{team_stats.get('avg_barge_rp',NO_DATA_VALUE):.2f}")
 
 
 st.subheader("Performance: Zscores")

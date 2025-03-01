@@ -23,10 +23,15 @@ def get_matches() -> pl.DataFrame:
 def get_rankings() -> pl.DataFrame:
     return con.sql("select * from tba.event_rankings").df();
 
-
-def get_team_list(event_id:str) -> list:
-    all_teams_and_ranks = get_oprs_and_ranks_for_event(event_id)
-    return sorted(all_teams_and_ranks['team_number'].dropna().values.tolist())
+@cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
+def get_team_list(event_key:str) -> list:
+    df = con.sql(f"""
+            select red1, red2, red3, blue1, blue2, blue3
+            from tba.matches
+            where event_key = '{event_key }'
+    """).df()
+    unique_teams = pd.unique(df.values.ravel())
+    return sorted(unique_teams.tolist())
 
 
 def get_most_recent_event() -> str:
