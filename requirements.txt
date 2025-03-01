@@ -19,3 +19,4 @@ great_tables
 scipy
 pygwalker
 schedule
+duckdb==1.1.3
