@@ -214,6 +214,7 @@ def select_non_zscore_columns(df: pd.DataFrame ):
 
 @cachetools.func.ttl_cache(maxsize=128, ttl=CCM_CACHE_SECONDS)
 def get_ccm_data() -> pd.DataFrame:
+    print("This is the new version of get_ccm_data")
     all_match_data = cached_data.get_matches()
     all_match_data = all_match_data[ all_match_data["winning_alliance"].notna() ]
     event_keys = all_match_data['event_key'].unique().tolist()
