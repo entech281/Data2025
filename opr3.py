@@ -216,7 +216,9 @@ def select_non_zscore_columns(df: pd.DataFrame ):
 def get_ccm_data() -> pd.DataFrame:
     print("This is the new version of get_ccm_data")
     all_match_data = cached_data.get_matches()
+    print(f"Before Filter {len(all_match_data)}")
     all_match_data = all_match_data[ all_match_data["winning_alliance"].notna() ]
+    print(f"After Filter {len(all_match_data)}")
     event_keys = all_match_data['event_key'].unique().tolist()
 
     r = []
