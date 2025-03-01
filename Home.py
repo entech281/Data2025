@@ -2,7 +2,7 @@ import streamlit as st
 import jobs
 st.set_page_config(layout="wide")
 
-st.title("281 Scouting2")
+st.title("281 Scouting3")
 
 st.subheader("Open the page list if this looks totally blank")
 
