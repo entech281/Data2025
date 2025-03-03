@@ -1,11 +1,12 @@
 import streamlit as st
 from pages_util.event_selector import event_selector
-from cached_data import get_matches,get_team_list
+from cached_data import get_matches, get_team_list, get_oprs_and_ranks_for_event
 from opr3 import *
 import altair as alt
 from PIL import Image
 import io
 from pages_util.style import  st_horizontal
+import duckdb
 
 selected_event = event_selector()
 st.title("Team Spotlight")
@@ -17,30 +18,34 @@ team_list = get_team_list(selected_event)
 # TODO
 # Make all of these one one sql statement
 
-matches_df =get_matches()
+matches_df = get_matches()
 tags_df = con.sql(f"""SELECT te.team_number, count(ta.tag), ta.tag
                         FROM tba.teams te
                         LEFT JOIN scouting.tags ta ON
                         (ta.team_number = te.team_number)
                         GROUP BY te.team_number, ta.tag;""").df()
 pit_df = con.sql("SELECT * FROM scouting.pit").df()
-ranking_df = con.sql(f"""
-SELECT  er.team_number,
-        er.rank as actual_rank,
-        o.oprs,
-        er.event_key,
-        RANK() OVER (ORDER BY oprs DESC) as expected_rank
-FROM tba.event_rankings er
-INNER JOIN tba.oprs o ON (er.team_number = o.team_number AND er.event_key = o.event_key)
-""").df()
+# ranking_df = con.sql(f"""
+# SELECT  er.team_number,
+#         er.rank as actual_rank,
+#         o.oprs,
+#         er.event_key,
+#         RANK() OVER (ORDER BY oprs DESC) as expected_rank
+# FROM tba.event_rankings er
+# INNER JOIN tba.oprs o ON (er.team_number = o.team_number AND er.event_key = o.event_key)
+# """).df()
+
+ranking_df = get_oprs_and_ranks_for_event(selected_event)
+ranking_df = duckdb.query("SELECT *, RANK() OVER (ORDER BY opr DESC) as expected_rank FROM ranking_df").df()
+
  
 
 team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team))
 
 
 if team is not None:
-    team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin([selected_event]))]
-    
+    # team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin([selected_event]))]
+    team_ranking = ranking_df[(ranking_df['team_number'] == team)]
     if not team_ranking.empty:
 
         with st.container(border=True):
@@ -48,20 +53,20 @@ if team is not None:
             col1, col2, col3 = st.columns(3)
             
             with col1:
-                if pd.notna(team_ranking['oprs'].iloc[0]):
-                    st.metric("OPR", f"{team_ranking['oprs'].iloc[0]:.2f}")
+                if pd.notna(team_ranking['opr'].iloc[0]):
+                    st.metric("OPR", f"{team_ranking['opr'].iloc[0]:.2f}")
                 else:
                     st.info("No OPR data available")
                     
             with col2:
-                if pd.notna(team_ranking['actual_rank'].iloc[0]):
-                    st.metric("Current Rank", int(team_ranking['actual_rank'].iloc[0]))
+                if pd.notna(team_ranking['rank'].iloc[0]):
+                    st.metric("Current Rank", int(team_ranking['rank'].iloc[0]))
                 else:
                     st.info("No ranking data available")
                     
             with col3:
-                if pd.notna(team_ranking['actual_rank'].iloc[0]) and pd.notna(team_ranking['expected_rank'].iloc[0]):
-                    rank_diff = int(team_ranking['actual_rank'].iloc[0]) - int(team_ranking['expected_rank'].iloc[0])
+                if pd.notna(team_ranking['rank'].iloc[0]) and pd.notna(team_ranking['expected_rank'].iloc[0]):
+                    rank_diff = int(team_ranking['rank'].iloc[0]) - int(team_ranking['expected_rank'].iloc[0])
                     status = "Underranked" if rank_diff > 0 else "Overranked" if rank_diff < 0 else "Accurately ranked"
                     delta = rank_diff
                     st.metric("Ranking Status", status, delta=f"{delta} positions")
