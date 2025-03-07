@@ -1,4 +1,3 @@
-from io import BytesIO
 import streamlit as st
 import cached_data
 from motherduck import con
