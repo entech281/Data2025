@@ -3,6 +3,7 @@ import streamlit as st
 import pipeline
 from streamlit_extras.streaming_write import write
 from streamlit_extras.capture import logcapture
+from cached_data import clear_caches
 logger = logging.getLogger(__name__)
 st.title("Refresh Data from TBA")
 
@@ -16,3 +17,5 @@ def run_data_refresh():
 
 if st.button("Refresh data Now"):
     run_data_refresh()
+    clear_caches()
+    st.write("Cache Cleared")

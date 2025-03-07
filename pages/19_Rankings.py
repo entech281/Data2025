@@ -8,8 +8,6 @@ selected_event = event_selector()
 st.title("Rankings")
 rankings = get_oprs_and_ranks_for_event(selected_event)
 rankings = rankings[['team_number','rank','avg_rp','opr','wins','losses','ties','total_rp','avg_win_rp','avg_auto_rp','avg_coral_rp','avg_barge_rp','dpr','ccwm']]
-st.subheader("Rankings")
-st.dataframe( rankings,hide_index=True)
 
 st.subheader("Rank vs OPR")
 fig = px.scatter(rankings,
@@ -32,3 +30,7 @@ fig.update_layout(
 
 # Display the chart in Streamlit
 st.plotly_chart(fig, use_container_width=True)
+
+
+st.subheader("Rankings")
+st.dataframe( rankings,hide_index=True)
