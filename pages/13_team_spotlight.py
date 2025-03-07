@@ -39,8 +39,9 @@ team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team)
 
 
 if team is not None:
+    print(ranking_df.to_string())
     team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin([selected_event]))]
-    
+    print(team_ranking)
     if not team_ranking.empty:
 
         with st.container(border=True):
