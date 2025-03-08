@@ -13,7 +13,7 @@ selected_event = event_selector()
 
 team_list = get_team_list(selected_event)
 available_tags = [
-    "Good Driver", "Bad Driver", "Unreliable", "Fast", "Normal-Speed", "Slow", "Pizza Box", "Disable"
+    "Good Driver", "Bad Driver", "Unreliable", "Fast", "Normal-Speed", "Slow", "Pizza Box", "Disable", "Defense", "Penalty-Prone"
 ]
 
 selected_team = st.selectbox("team Number",team_list)
