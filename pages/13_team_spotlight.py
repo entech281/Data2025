@@ -7,6 +7,7 @@ from PIL import Image
 import io
 from pages_util.style import st_horizontal
 import duckdb
+from opr3 import add_zscores
 
 selected_event = event_selector()
 st.title("Team Spotlight")
@@ -143,6 +144,47 @@ if team is not None and events is not None and len(events) > 0:
         hide_index=True
     )
 """
+    
+avg_coral_df = con.sql("""SELECT 
+    m.team_number,
+    AVG(m.auto_coral_level_1) AS avg_auto_coral_level_1,
+    AVG(m.auto_coral_level_2) AS avg_auto_coral_level_2,
+    AVG(m.auto_coral_level_3) AS avg_auto_coral_level_3,
+    AVG(m.auto_coral_level_4) AS avg_auto_coral_level_4,
+    AVG(m.coral_level_1) AS avg_teleop_coral_level_1,
+    AVG(m.coral_level_2) AS avg_teleop_coral_level_2,
+    AVG(m.coral_level_3) AS avg_teleop_coral_level_3,
+    AVG(m.coral_level_4) AS avg_teleop_coral_level_4
+FROM scouting.matches m
+GROUP BY m.team_number
+ORDER BY m.team_number;""").df()
+
+avg_coral_df = add_zscores(avg_coral_df, avg_coral_df.columns[1:])
+
+avg_coral_df = avg_coral_df[avg_coral_df['team_number'] == team]
+
+if not avg_coral_df.empty:
+    # Extract auto and teleop z-scores for levels 1–4 as lists.
+    auto_vals = avg_coral_df[["avg_auto_coral_level_1_z",
+                              "avg_auto_coral_level_2_z",
+                              "avg_auto_coral_level_3_z",
+                              "avg_auto_coral_level_4_z"]].iloc[0].tolist()
+    
+    teleop_vals = avg_coral_df[["avg_teleop_coral_level_1_z",
+                                "avg_teleop_coral_level_2_z",
+                                "avg_auto_coral_level_3_z",
+                                "avg_teleop_coral_level_4_z"]].iloc[0].tolist()
+    
+    # Create a new DataFrame with index as levels "L1" to "L4" and columns "Auto" and "Teleop"
+    coral_table = pd.DataFrame({
+        "Auto": auto_vals,
+        "Teleop": teleop_vals
+    }, index=["L1", "L2", "L3", "L4"])
+    
+    st.dataframe(coral_table)
+else:
+    st.info("No coral data available for this team.")
+
 
 if team is not None:
 
