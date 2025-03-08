@@ -6,7 +6,6 @@ import polars as pl
 
 CACHE_SECONDS = 600
 
-
 def get_matches_for_event(event_key:str) -> pd.DataFrame:
     all_matches = get_matches()
     return all_matches [ all_matches['event_key'] == event_key].sort_values(by=['time'], ascending=[True])
@@ -188,3 +187,12 @@ def get_ranking_point_summary_for_event(event_key:str) -> pd.DataFrame:
     r['avg_coral_rp'] = r['coral_rp'] / r['match_count']
     r['avg_barge_rp'] = r['barge_rp'] / r['match_count']
     return r
+
+
+def clear_caches():
+    get_ranking_point_summary_for_event.cache_clear()
+    _get_tba_oprs_and_ranks.cache_clear()
+    get_matches.cache_clear()
+    get_rankings.cache_clear()
+    get_team_list.cache_clear()
+    get_events.cache_clear()
