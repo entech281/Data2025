@@ -11,11 +11,11 @@ selected_event = event_selector()
 
 st.header("What is a Cycle?")
 st.markdown("""
-A **Cycle** is the time between when the Intake Coral Sensor transitions from False to True.
+A **Cycle** is the time between Intake Coral Sensor transitions from False to True.
 
 Each cycle can be L1, L2, L3, or L4. This is measured by how far up the elevator goes during the cycle.
 
-A Cycle is composed of three parts:
+A Cycle is composed of two parts:
 * **travel_time**: the time traveling to and from the reef. Travel time is improved by optimizing intake and alignment
 * **deploy_time**: the time to deploy. This is measured by taking the earliest time the elevator first goes up, and the latest time the elevator goes to zero, during a single cycle  
 Deploy time is improved by elevator and operator sequence timings.
