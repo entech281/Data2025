@@ -32,6 +32,7 @@ df['total_travel'] = df['travel_from'] + df['travel_to']
 df['match_key'] = df['match_type'] + df['match_number'].astype('str')
 df['deploy_time'] = df['deploy']
 df['mark_size'] = df['deploy_time'].astype('int')
+df['total_cycle_time'] = df['duration']
 df.sort_values(by=['cycle_timestamp'],ascending=True)
 df.index.name='index'
 details_df = df
@@ -71,8 +72,14 @@ st.plotly_chart(fig, use_container_width=True)
 
 
 
+st.header("Summary")
+summary_df = details_df.groupby(['cycle_type','match_type']).agg({
+    'total_cycle_time': ['min','max','median','mean'],
+    'total_travel': ['min','max','median','mean'],
+    'deploy_time': ['min','max','median','mean']
+})
+st.dataframe(summary_df)
 
-#details_df = details_df [ ['start_timestamp','event_key','match_type','match_number','cycle_type','duration','total_travel','deploy']]
 st.header("Raw Cycle Times")
 st.dataframe(details_df,hide_index=True,height=600)
 
