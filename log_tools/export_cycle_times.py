@@ -10,7 +10,6 @@ from datetime import datetime
 MatchInfo = namedtuple('MatchInfo', ['event_time', 'event_key', 'match_type', 'match_number'])
 MAX_REASONABLE_TIME = 90
 
-
 def parse_wpilog_filename(file_path: Path):
     # Get the filename from the Path object
     filename = file_path.name
@@ -18,27 +17,34 @@ def parse_wpilog_filename(file_path: Path):
 
     # Updated regular expression to correctly match match type and match number
     pattern = r'([a-zA-Z]+)_(?P<date>\d{2}-\d{2}-\d{2})_(?P<time>\d{2}-\d{2}-\d{2})_(?P<event_key>[a-zA-Z]+)_(?P<match_type>[a-z])(?P<match_number>\d+)\.wpilog'
-
+    practice_pattern = r'([a-zA-Z]+)_(?P<date>\d{2}-\d{2}-\d{2})_(?P<time>\d{2}-\d{2}-\d{2})\.wpilog'
     match = re.match(pattern, filename)
-
+    practice_match= re.match(practice_pattern,filename)
     # Debugging: print if the match is successful or not
+    match_counter=0
     if match:
-        print(f"Match found: {match.groups()}")
-    else:
-        print(f"Match failed for filename: {filename}")
+        event_key = match.group('event_key')
+        date_str = match.group('date')
+        time_str = match.group('time')
+        match_type = match.group('match_type')
+        match_number = int(match.group('match_number'))
 
-    if not match:
+        # Convert date and time to a datetime object
+        event_time = datetime.strptime(f"{date_str} {time_str}", "%y-%m-%d %H-%M-%S")
+    elif practice_match:
+        event_key = 'practice'
+        date_str = practice_match.group('date')
+        time_str = practice_match.group('time')
+        match_type = 'p'
+        match_number = match_counter
+        match_counter+= 1
+
+        # Convert date and time to a datetime object
+        event_time = datetime.strptime(f"{date_str} {time_str}", "%y-%m-%d %H-%M-%S")
+    else:
         raise ValueError(f"Filename '{filename}' does not match the expected pattern.")
 
     # Extract matched groups
-    event_key = match.group('event_key')
-    date_str = match.group('date')
-    time_str = match.group('time')
-    match_type = match.group('match_type')
-    match_number = int(match.group('match_number'))
-
-    # Convert date and time to a datetime object
-    event_time = datetime.strptime(f"{date_str} {time_str}", "%y-%m-%d %H-%M-%S")
 
     # Map match type to a descriptive name
     match_type_map = {'p': 'Prac', 'e': 'Comp', 'q': 'Qual'}
@@ -51,6 +57,7 @@ def load_wpilib_log(file_path:Path):
     s = time()
     (df,error) = read_log_to_dataframe(input_path=file_path)
     print(f"Load: {time()-s } s ")
+    print(df)
     return df
 
 def add_match_info(df:pd.DataFrame, mf:MatchInfo)-> pd.DataFrame:
@@ -178,10 +185,10 @@ def test_one_file():
 
 def main():
 
-    all_cycles = load_all_logs_from_path(Path("./match_logs/hartsville/"))
+    all_cycles = load_all_logs_from_path(Path("./match_logs/3-15-practice/"))
     all_cycles = reorder_and_add_rownum(all_cycles)
     print(all_cycles)
-    all_cycles.to_csv("./data/cycle_data.csv",header=True,quotechar='"',index=False)
+    all_cycles.to_csv("./data/cycle_data_3_15_25.csv",header=True,quotechar='"',index=False)
 
 if __name__ == '__main__':
     #test_one_file()

@@ -24,9 +24,9 @@ Deploy time is improved by elevator and operator sequence timings.
 
 CACHE_TIME_SECS=1200
 
-df = pd.read_csv("./data/cycle_data.csv")
-df = df [ df['event_key'] == selected_event]
-df = df [ df['match_type'] != 'Prac']
+df = pd.read_csv("./data/cycle_data_3_15_25.csv")
+#df = df [ df['event_key'] == selected_event]
+#df = df [ df['match_type'] != 'Prac']
 df = df.dropna()
 df['total_travel'] = df['travel_from'] + df['travel_to']
 df['match_key'] = df['match_type'] + df['match_number'].astype('str')
