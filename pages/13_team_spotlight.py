@@ -8,6 +8,7 @@ import io
 from pages_util.style import st_horizontal
 import duckdb
 from opr3 import add_zscores
+import math
 
 selected_event = event_selector()
 st.title("Team Spotlight")
@@ -244,15 +245,29 @@ if team is not None:
                 st.metric("Preferred Start", pit_df['start_position'].iloc[0])
                 st.metric("Preferred Scoring", prefered_scoring)
 
+        empty_left_col, col1, col2 = st.columns([0.5, 1, 1])
+
+        with col1:
+            with st_horizontal():
+                st.metric("Drive Type", pit_df['drive_type'].iloc[0])
+
+        with col2:
+            with st_horizontal():
+                st.metric("Robot Type", pit_df['robot_type'].iloc[0])
+
         # Strategy section
         st.subheader("🎯 Strategy")
         capabilities = pit_df['scoring_capabilities'].iloc[0].split(',')
         st.write("**Scoring Capabilities:**", ", ".join(capabilities))
         st.write("**Preferred Scoring:** ", prefered_scoring)
 
+        if pit_df['robot_picture'].iloc[0] is not None and isinstance(pit_df['robot_picture'].iloc[0], bytearray):
+            st.caption("🤖 Robot Picture")
+            st.image(Image.open(io.BytesIO(pit_df['robot_picture'].iloc[0])), use_container_width=True)
+
         # Auto route
-        if pit_df['auto_route'].iloc[0] is not None:
-            st.subheader("🤖 Auto Route")
+        if pit_df['auto_route'].iloc[0] is not None and isinstance(pit_df['auto_route'].iloc[0], bytearray):
+            st.subheader("🚗 Auto Route")
             st.image(Image.open(io.BytesIO(pit_df['auto_route'].iloc[0])), use_container_width=True)
 
         # Notes section
