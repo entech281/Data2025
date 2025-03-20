@@ -6,6 +6,7 @@ from cached_data import get_team_list,get_event_list,get_most_recent_event
 from PIL import Image
 import io
 from pages_util.event_selector import event_selector
+import math
 
 st.title("Pit Scouting Form")
 selected_event = event_selector()
@@ -51,8 +52,11 @@ def get_default_data(team: int = None) -> pd.DataFrame:
         'start_position': "No Preference",
         'scoring_capabilities': "",
         'preferred_scoring': "",
+        'drive_type': "Swerve",
+        'robot_type': "None",
         'notes': "",
-        'auto_route': None
+        'auto_route': None,
+        'robot_picture': None
     }])
     
     if team is not None:
@@ -61,6 +65,10 @@ def get_default_data(team: int = None) -> pd.DataFrame:
                 WHERE team_number = {team} 
                 ORDER BY created_at DESC LIMIT 1
             """).df()
+        
+        for col in df.columns:
+            if df[col].iloc[0] is None or (math.isnan(df[col].iloc[0]) if isinstance(df[col].iloc[0], (float, int)) else False):
+                df[col].iloc[0] = default[col].iloc[0]
         if not df.empty:
             # Clean up the string fields
             df['preferred_scoring'] = df['preferred_scoring'].str.removeprefix("[").str.removesuffix("]")
@@ -97,7 +105,32 @@ with st.form("pit_scouting"):
         ["Climb Side", "Center", "Processor Side", "No Preference"],
         index=["Climb Side", "Center", "Processor Side", "No Preference"].index(default_data['start_position'].iloc[0])
     )
+
+    drive_type = st.selectbox(
+        "Drive Type",
+        ["Mecanum", "Tank", "Swerve", "H Drive", "Other"],
+        index=["Mecanum", "Tank", "Swerve", "H Drive", "Other"].index(default_data['drive_type'].iloc[0])
+    )
+
+    robot_type = st.selectbox(
+        "Robot Type",
+        ["Kitbot", "Pizza", "Everybot", "Toaster", "None"],
+        index=["Kitbot", "Pizza", "Everybot", "Toaster", "None"].index(default_data['robot_type'].iloc[0])
+    )
+
+
+    robot_picture_binary_data = st.camera_input(label="Robot Picture")
+    robot_picture = None
     
+    if robot_picture_binary_data is not None:
+        binary_data = robot_picture_binary_data.read()
+        image_pil = Image.open(io.BytesIO(binary_data))
+        img_byte_arr = io.BytesIO()
+        image_pil.save(img_byte_arr, format='PNG')
+        robot_picture = img_byte_arr.getvalue()
+    
+    if default_data['robot_picture'].iloc[0] is not None:
+        st.image(Image.open(io.BytesIO(default_data['robot_picture'].iloc[0])), caption="Previous Robot Picture")
     # Auto Route
 
     
@@ -107,11 +140,11 @@ with st.form("pit_scouting"):
     # img_byte_arr = img_byte_arr.getvalue()
     
 
-    binary_data = st.camera_input(label="Auto Route (draw a picture please)")
+    auto_binary_data = st.camera_input(label="Auto Route (draw a picture please)")
     auto_route = None
     
-    if binary_data is not None:
-        binary_data = binary_data.read()
+    if auto_binary_data is not None:
+        binary_data = auto_binary_data.read()
         image_pil = Image.open(io.BytesIO(binary_data))
         img_byte_arr = io.BytesIO()
         image_pil.save(img_byte_arr, format='PNG')
@@ -154,6 +187,9 @@ with st.form("pit_scouting"):
             'width': width,
             'start_position': start_pos,
             'auto_route': auto_route,
+            'drive_type': drive_type,
+            'robot_type': robot_type,
+            'robot_picture': robot_picture,
             'scoring_capabilities': ','.join(scoring_capabilities),
             'preferred_scoring': ','.join(preferred_scoring) if isinstance(preferred_scoring, list) else preferred_scoring,
             'notes': notes,
@@ -171,6 +207,9 @@ with st.form("pit_scouting"):
                         width = ?,
                         start_position = ?,
                         auto_route = ?,
+                        drive_type = ?,
+                        robot_type = ?,
+                        robot_picture = ?,
                         scoring_capabilities = ?,
                         preferred_scoring = ?,
                         notes = ?,
@@ -179,7 +218,8 @@ with st.form("pit_scouting"):
                     WHERE team_number = ?
                 """, [
                     data['height'], data['weight'], data['length'], data['width'],
-                    data['start_position'], data['auto_route'], data['scoring_capabilities'],
+                    data['start_position'], data['auto_route'], data['drive_type'],
+                    data['robot_type'], data['robot_picture'], data['scoring_capabilities'],
                     data['preferred_scoring'], data['notes'], data['author'],
                     data['team_number']
                 ])
@@ -189,13 +229,14 @@ with st.form("pit_scouting"):
                 con.execute("""
                     INSERT INTO scouting.pit 
                     (team_number, height, weight, length, width, 
-                    start_position, auto_route, scoring_capabilities, 
-                    preferred_scoring, notes, author)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    start_position, auto_route, drive_type, robot_type, robot_picture,
+                    scoring_capabilities, preferred_scoring, notes, author, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
                 """, [
                     data['team_number'], data['height'], data['weight'],
                     data['length'], data['width'], data['start_position'],
-                    data['auto_route'], data['scoring_capabilities'],
+                    data['auto_route'], data['drive_type'], data['robot_type'],
+                    data['robot_picture'], data['scoring_capabilities'],
                     data['preferred_scoring'], data['notes'], data['author']
                 ])
                 st.success("Data saved successfully!")
