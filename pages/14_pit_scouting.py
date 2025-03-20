@@ -53,7 +53,7 @@ def get_default_data(team: int = None) -> pd.DataFrame:
         'scoring_capabilities': "",
         'preferred_scoring': "",
         'drive_type': "Swerve",
-        'robot_type': "Kitbot",
+        'robot_type': "None",
         'notes': "",
         'auto_route': None,
         'robot_picture': None
@@ -114,8 +114,8 @@ with st.form("pit_scouting"):
 
     robot_type = st.selectbox(
         "Robot Type",
-        ["Kitbot", "Pizza", "Everybot", "Toaster"],
-        index=["Kitbot", "Pizza", "Everybot", "Toaster"].index(default_data['robot_type'].iloc[0])
+        ["Kitbot", "Pizza", "Everybot", "Toaster", "None"],
+        index=["Kitbot", "Pizza", "Everybot", "Toaster", "None"].index(default_data['robot_type'].iloc[0])
     )
 
 
