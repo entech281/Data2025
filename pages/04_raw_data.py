@@ -47,6 +47,10 @@ if 'auto_route' in pit.columns:
     pit['auto_route'] = pit['auto_route'].apply(lambda item: bytearray(struct.pack("f", item) if type(item) is float else item))
     pit['auto_route'] = pit['auto_route'].apply(image_formatter)
 
+if 'robot_picture' in pit.columns:
+    pit['robot_picture'] = pit['robot_picture'].apply(lambda item: bytearray(struct.pack("f", item) if type(item) is float else item))
+    pit['robot_picture'] = pit['robot_picture'].apply(image_formatter)
+
 
 st.title("Raw Data")
 
