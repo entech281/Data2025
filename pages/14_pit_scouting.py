@@ -114,8 +114,8 @@ with st.form("pit_scouting"):
 
     robot_type = st.selectbox(
         "Robot Type",
-        ["Kitbot", "Pizza", "Everybot"],
-        index=["Kitbot", "Pizza", "Everybot"].index(default_data['robot_type'].iloc[0])
+        ["Kitbot", "Pizza", "Everybot", "Toaster"],
+        index=["Kitbot", "Pizza", "Everybot", "Toaster"].index(default_data['robot_type'].iloc[0])
     )
 
 
