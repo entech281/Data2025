@@ -9,7 +9,7 @@ st.subheader("Missing Picture:")
 
 all_data = con.sql("""
                    select team_number, author, notes,created_at  from scouting.pit
-where OCTET_LENGTH(auto_route) = 0 or OCTET_LENGTH(robot_picture) = 0
+where OCTET_LENGTH(auto_route) is NULL or OCTET_LENGTH(robot_picture) is NULL
 order by team_number asc;
                    """
                    ).df()
