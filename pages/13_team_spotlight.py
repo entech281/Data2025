@@ -263,12 +263,12 @@ if team is not None:
 
         if pit_df['robot_picture'].iloc[0] is not None and isinstance(pit_df['robot_picture'].iloc[0], bytearray):
             st.caption("🤖 Robot Picture")
-            st.image(Image.open(io.BytesIO(pit_df['robot_picture'].iloc[0])), use_container_width=True)
+            st.image(Image.open(io.BytesIO(pit_df['robot_picture'].iloc[0])), width=225)
 
         # Auto route
         if pit_df['auto_route'].iloc[0] is not None and isinstance(pit_df['auto_route'].iloc[0], bytearray):
             st.subheader("🚗 Auto Route")
-            st.image(Image.open(io.BytesIO(pit_df['auto_route'].iloc[0])), use_container_width=True)
+            st.image(Image.open(io.BytesIO(pit_df['auto_route'].iloc[0])), width=225)
 
         # Notes section
         if pit_df['notes'].iloc[0]:
