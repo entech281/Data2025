@@ -6,7 +6,7 @@ import typer
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from data_log_reader import DataLogReader
+from log_tools.data_log_reader import DataLogReader
 
 HEADER_LIST = ["Timestamp", "Name", "Value"]
 

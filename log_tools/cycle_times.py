@@ -1,12 +1,14 @@
-from log_helpers import read_log_to_dataframe
+
 from pathlib import Path
 import pandas as pd
 from time import time
 import re
 from collections import namedtuple
 from datetime import datetime
+from tabulate import tabulate
+import argparse
 
-
+from log_tools.log_helpers import read_log_to_dataframe
 MatchInfo = namedtuple('MatchInfo', ['event_time', 'event_key', 'match_type', 'match_number'])
 MAX_REASONABLE_TIME = 90
 
@@ -161,6 +163,7 @@ def load_single_logfile(wpi_log_file:Path) -> pd.DataFrame:
 
 
 def load_all_logs_from_path(log_dir:Path) -> pd.DataFrame:
+
     all_data = []
     for file_path in log_dir.iterdir():
         if file_path.is_file():
@@ -183,13 +186,82 @@ def test_one_file():
          load_single_logfile( Path("./match_logs/hartsville/akit_25-03-07_15-52-34_schar_q17.wpilog") )
      ))
 
-def main():
+
+def analzye_matches(match_data: pd.DataFrame):
+    df = match_data
+    df = df.dropna().copy()
+    df['total_travel'] = df['travel_from'] + df['travel_to']
+    df['match_key'] = df['match_type'] + df['match_number'].astype('str')
+    df['deploy_time'] = df['deploy']
+    df['mark_size'] = df['deploy_time'].astype('int')
+    df['total_cycle_time'] = df['duration']
+    df.sort_values(by=['cycle_timestamp'],ascending=True)
+    df.index.name='index'
+
+    #print(tabulate(df, headers='keys', tablefmt='psql', floatfmt=".3f"))
+    return df
+
+
+def load_matches_in_folder(folder_path:Path) -> pd.DataFrame:
+    df = load_all_logs_from_path(folder_path)
+    df = reorder_and_add_rownum(df)
+    #print(tabulate(df, headers='keys', tablefmt='psql',floatfmt=".3f"))
+    return df
+
+
+def main_old():
 
     all_cycles = load_all_logs_from_path(Path("./match_logs/3-15-practice/"))
     all_cycles = reorder_and_add_rownum(all_cycles)
-    print(all_cycles)
+    #print(all_cycles)
     all_cycles.to_csv("./data/cycle_data_3_15_25.csv",header=True,quotechar='"',index=False)
 
-if __name__ == '__main__':
-    #test_one_file()
-    main()
+
+def load_cached_dataframe(path: Path) -> pd.DataFrame:
+    """Function provided by the user to load a cached CSV file."""
+    print(f"Found cache file: {path}")
+    return pd.read_csv(path)
+
+
+def cache_dataframe(df: pd.DataFrame, path: Path):
+    """Function provided by the user to save a dataframe as a CSV."""
+    print(f"Saving Cache File {path}")
+    df.to_csv(path, index=False)
+
+
+def load_folder_using_cache(input_path: Path,use_cache=False):
+    metrics_file = input_path / "metrics.csv"
+
+    if use_cache and metrics_file.exists():
+        df = load_cached_dataframe(metrics_file)
+    else:
+        df = load_matches_in_folder(input_path)
+        cache_dataframe(df, metrics_file)
+
+    return df
+
+
+def list_directories(p: Path):
+    """Returns a list of directories in the given path."""
+    if not p.exists() or not p.is_dir():
+        raise ValueError(f"Invalid path: {p} is not a directory.")
+
+    return [d for d in p.iterdir() if d.is_dir()]
+
+
+def load_all_folders_in_path(p: Path, use_cache=True)-> list[pd.DataFrame]:
+    dfs = []
+    for p in list_directories(p):
+       print(f"Loading Directory: {p}")
+       raw_df = load_folder_using_cache(p,use_cache)
+       analyzed_df = analzye_matches(raw_df)
+       dfs.append (
+           {
+               'name': p.name,
+               'raw_df': raw_df,
+               'analyzed_df': analyzed_df
+           }
+       )
+    return dfs
+
+
