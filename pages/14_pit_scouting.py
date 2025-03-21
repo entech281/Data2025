@@ -159,14 +159,14 @@ with st.form("pit_scouting"):
     scoring_capabilities = st.pills(
         "Scoring Capabilities",
         scoring_possibilities,
-        default=default_data['scoring_capabilities'].iloc[0].split(',') if default_data['scoring_capabilities'].iloc[0] else [],
+        # default=list(default_data['scoring_capabilities'].iloc[0].split(',') if default_data['scoring_capabilities'].iloc[0] else []),
         selection_mode="multi"
     )
     
     preferred_scoring = st.pills(
         "Preferred Scoring Method",
         scoring_possibilities,
-        default=default_data['preferred_scoring'].iloc[0].split(', ') if default_data['preferred_scoring'].iloc[0] else [],
+        # default=list(default_data['preferred_scoring'].iloc[0].split(', ') if default_data['preferred_scoring'].iloc[0] else []),
         selection_mode="multi",
         key="preferred_scoring"
     )
