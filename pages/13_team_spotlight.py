@@ -181,7 +181,7 @@ if not avg_coral_df.empty:
         "Auto": auto_vals,
         "Teleop": teleop_vals
     }, index=["L1", "L2", "L3", "L4"])
-    
+    st.subheader("Coral ZScores")
     st.dataframe(coral_table)
 else:
     st.info("No coral data available for this team.")
