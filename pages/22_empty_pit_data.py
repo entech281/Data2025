@@ -18,8 +18,15 @@ st.dataframe(all_data )
 st.subheader("Not Updated Recently:")
 
 all_data = con.sql("""
-                     select team_number, author, notes,created_at  from scouting.pit
-    where  created_at < NOW() - INTERVAL '7' DAY
+                     SELECT team_number, created_at
+FROM scouting.pit
+WHERE created_at < NOW() - INTERVAL '3 days'
+and team_number in (
+  select distinct team_number
+  from tba.oprs where event_key='2025sccmp'
+)
                    """
                      ).df()
 st.dataframe(all_data)
+
+
