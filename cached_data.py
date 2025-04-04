@@ -23,6 +23,35 @@ def get_rankings() -> pl.DataFrame:
     return con.sql("select * from tba.event_rankings").df();
 
 @cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
+def get_defense() -> pl.DataFrame:
+    return con.sql("""
+        select pit.team_number, pit.drive_type, GREATEST(height,width) as max_size, 
+        t.all_tags, o.oprs as opr, o.dprs as dpr, o.ccwms as ccwm,
+        case pit.drive_type
+            when 'Swerve' then 1
+            when 'Tank' then 2
+            when 'Mecanum' then 3
+            else 999
+        end as drive_rank
+        from scouting.pit
+
+    INNER JOIN ( 
+        select team_number, list(tag) as all_tags
+        from scouting.tags
+        where 'Defense' in (select tag from scouting.tags where team_number = pit.team_number)
+        group by team_number
+    ) as t
+    on ( t.team_number = pit.team_number)
+
+    INNER JOIN tba.oprs as o
+    on ( t.team_number = o.team_number and pit.team_number = o.team_number  )
+
+    where o.event_key = '2025schar'
+    group by pit.team_number, pit.drive_type, pit.height, pit.width, t.all_tags, o.oprs, o.dprs, o.ccwms, drive_rank
+    order by drive_rank asc, max_size desc, dpr desc;
+""").df()
+
+@cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
 def get_team_list(event_key:str) -> list:
     df = con.sql(f"""
             select red1, red2, red3, blue1, blue2, blue3
@@ -193,6 +222,7 @@ def clear_caches():
     get_ranking_point_summary_for_event.cache_clear()
     _get_tba_oprs_and_ranks.cache_clear()
     get_matches.cache_clear()
+    get_defense.cache_clear()
     get_rankings.cache_clear()
     get_team_list.cache_clear()
     get_events.cache_clear()
