@@ -22,8 +22,7 @@ all_data = con.sql("""
 FROM scouting.pit
 WHERE created_at < NOW() - INTERVAL '3 days'
 and team_number in (
-  select distinct team_number
-  from tba.oprs where event_key='2025sccmp'
+  281, 342, 343, 1051, 1102, 1287, 1319, 1758, 2815, 3489, 3490, 4451, 4533, 4864, 5130, 6167, 6366, 7085, 8137, 8575, 9315, 9571, 10231, 10367, 10388, 10591, 10599, 10619
 )
                    """
                      ).df()
