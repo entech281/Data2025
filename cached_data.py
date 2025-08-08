@@ -1,29 +1,107 @@
 import cachetools.func
 import pandas as pd
-
+import json
 from motherduck import con
 import polars as pl
-
+from langchain.tools import tool
+import numpy as np
+import opr3
 CACHE_SECONDS = 600
+
+def convert_ndarrays(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
+
+@tool
+def get_bot_matches(event_key:str) -> str:
+    """
+    Given an FRC event key like '2025schar', returns all of the matches played
+    
+    the keys in the response are of the format 'scoring_category_z', so you can take off
+    the _z suffix when matching data from a user query.
+    
+    Accepts:
+    - event_key: string like "2025schar"
+    
+    Returns:
+    - JSON string listing all match data, including which teams played ( red1, red2, red3, and blue1, blue2,blue3)
+    as well as the scores for both teams, the match time, and all of the bonus achievements and scoring in the match
+    """
+    m = get_matches_for_event(event_key)
+    return json.dumps(m.to_dict(orient='records'),indent=2)
 
 def get_matches_for_event(event_key:str) -> pd.DataFrame:
     all_matches = get_matches()
     return all_matches [ all_matches['event_key'] == event_key].sort_values(by=['time'], ascending=[True])
 
 
+@tool
+def get_team_zscores(event_key:str) -> str:
+    """
+    Given an FRC event key like '2025schar', returns the z scores for every robot
+    in all blue alliance performance categories.
+    see the statistics term z-score.
+
+    the keys in the response are of the format 'scoring_category_z', so you can take off
+    the _z suffix when matching data from a user query.
+
+    Accepts:
+    - event_key: string like "2025schar"
+
+    Returns:
+    - JSON string listing each scoring area, with an _z after it, and then for each of those,
+      a dict of z scores for each team within that scoring category
+    """
+    df = opr3.get_ccm_data_for_event(event_key)
+    df = opr3.select_z_score_columns(df, ['team_id'])
+
+    df.reset_index(drop=True, inplace=True)
+    df = df.set_index('team_id')
+    #df = df.T
+    df = df.sort_index()
+    d = df.to_dict()
+    return json.dumps(d,indent=2)
+
 # Example controller to cache queries
 # this will only run the query if it needs cache refresh
+#@tool
 @cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
 def get_matches() -> pl.DataFrame:
+    """Gets all of the matches available in the blue alliance"""
     return con.sql("select * from tba.matches").df();
+
 
 
 @cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
 def get_rankings() -> pl.DataFrame:
+    "Gives rankings for all robots at all events"
     return con.sql("select * from tba.event_rankings").df();
 
-@cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
+@tool
+def get_defense_bot(event_key: str) -> str:
+    """
+    Given an FRC event key like '2025schar', returns defense bot data including
+    team number, OPR, drive type, and other stats in JSON format.
+
+    Accepts:
+    - event_key: string like "2025schar"
+
+    Returns:
+    - JSON string listing team number, pit data, OPR, drive type, CCWM, and size.
+    """
+    df = get_defense()  # returns a polars or pandas DataFrame
+
+    df_clean = df.applymap(convert_ndarrays)
+    records = df_clean.to_dict(orient="records")
+
+    s = json.dumps(records, indent=2)
+    print(s)
+    return s
+
+#@cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
 def get_defense() -> pl.DataFrame:
+    "gives a data summary for all robots, with data about how well they might play defense. "
     return con.sql("""
         select pit.team_number, pit.drive_type, GREATEST(height,width) as max_size, 
         t.all_tags, o.oprs as opr, o.dprs as dpr, o.ccwms as ccwm,
@@ -51,8 +129,10 @@ def get_defense() -> pl.DataFrame:
     order by drive_rank asc, max_size desc, dpr desc;
 """).df()
 
+#@tool
 @cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
 def get_team_list(event_key:str) -> list:
+    "gets a data frame of all the teams available, based on input of an event key"
     df = con.sql(f"""
             select red1, red2, red3, blue1, blue2, blue3
             from tba.matches
@@ -94,8 +174,18 @@ def _get_tba_oprs_and_ranks() -> pd.DataFrame:
     """).df()
     return tba_ranks
 
-
+@tool
 def get_tba_oprs_and_ranks_for_event(event_key:str) -> pd.DataFrame:
+    """
+    Given an FRC event key like '2025schar', returns rankings for all bots at the event.
+    Accepts:
+    - event_key: string like "2025schar"
+
+    Returns:
+    - JSON string listing team_number,rank,
+    avg_rp,	opr,	wins,	losses,	ties,	total_rp,	avg_win_rp,	avg_auto_rp	avg_coral_rp,
+    	avg_barge_rp,	dpr,	ccwm
+    """
     r =  _get_tba_oprs_and_ranks()
     r = r[ r['event_key'] == event_key]
     return r
@@ -143,6 +233,7 @@ def get_robot_specific_data_from_matches( event_key:str) -> pd.DataFrame:
             d.extend(_get_robot_specific_value(row, t, 'blue', 3))
     return pd.DataFrame(d)
 
+#@tool
 @cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
 def get_ranking_point_summary_for_event(event_key:str) -> pd.DataFrame:
     """

@@ -1,6 +1,7 @@
 import streamlit as st
 import opr3
 from pages_util.event_selector import event_selector
+from cached_data import get_team_zscores
 st.set_page_config(layout="wide")
 
 
@@ -46,5 +47,5 @@ styled_df.format("{:.2f}")
 
 st.write(styled_df.to_html(), unsafe_allow_html=True)
 
-
+st.write ( get_team_zscores(selected_event))
 

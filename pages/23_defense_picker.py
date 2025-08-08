@@ -3,6 +3,12 @@ from pages_util.event_selector import event_selector
 from cached_data import get_defense
 import duckdb
 from motherduck import con
+import numpy as np
+
+def convert_ndarrays(obj):
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    return obj
 
 # Event Selector
 selected_event = event_selector()
@@ -41,6 +47,10 @@ visible_data = all_data[~all_data['team_number'].isin(st.session_state.hidden_te
 # Step 5: Display the filtered DataFrame (visible teams only)
 st.write("### Visible Teams (Filtered)")
 st.dataframe(visible_data)
+
+#df_clean = visible_data.applymap(convert_ndarrays)
+#records = df_clean.to_dict(orient="records")
+#st.write(records)
 
 # Step 6: Allow users to "Re-add All Teams" at the bottom
 if st.button("Re-add All Teams"):
