@@ -38,7 +38,7 @@ pit_df = con.sql("SELECT * FROM scouting.pit").df()
 ranking_df = get_oprs_and_ranks_for_event(selected_event)
 ranking_df = duckdb.query("SELECT *, RANK() OVER (ORDER BY opr DESC) as expected_rank FROM ranking_df").df()
 
-team = st.selectbox("Team Number", team_list, format_func=lambda team: int(team))
+team = st.selectbox("Team Number", team_list, format_func=lambda team: str(team))
 
 if team is not None:
     # team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin([selected_event]))]
