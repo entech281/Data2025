@@ -75,7 +75,7 @@ def get_most_recent_event() -> str:
 def get_event_list() -> pd.DataFrame:
     event_df = get_events()
     el=  event_df['event_key'].values.tolist()
-    el.append('swriw_2025')
+    #el.append('swriw_2025')
     return el
 
 @cachetools.func.ttl_cache(maxsize=128, ttl=CACHE_SECONDS)
