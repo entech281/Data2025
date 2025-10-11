@@ -79,7 +79,7 @@ if uploaded_file is not None:
         st.dataframe(df)
 
         st.write("Create Table Statement")
-        st.code(generate_create_table_sql(df,"scouting.matches2"))
+        st.code(generate_create_table_sql(df,"scouting.matches"))
         # Confirm before upload
         if st.button("Upload to Database"):
             # Build dynamic SQL query based on normalized column names.
