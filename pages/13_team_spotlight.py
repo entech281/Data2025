@@ -25,93 +25,92 @@ tags_df = con.sql(f"""SELECT te.team_number, count(ta.tag), ta.tag
                         (ta.team_number = te.team_number)
                         GROUP BY te.team_number, ta.tag;""").df()
 pit_df = con.sql("SELECT * FROM scouting.pit").df()
-# ranking_df = con.sql(f"""
-# SELECT  er.team_number,
-#         er.rank as actual_rank,
-#         o.oprs,
-#         er.event_key,
-#         RANK() OVER (ORDER BY oprs DESC) as expected_rank
-# FROM tba.event_rankings er
-# INNER JOIN tba.oprs o ON (er.team_number = o.team_number AND er.event_key = o.event_key)
-# """).df()
+ ranking_df = con.sql(f"""
+ SELECT  er.team_number,
+         er.rank as actual_rank,
+         o.oprs,
+         er.event_key,
+         RANK() OVER (ORDER BY oprs DESC) as expected_rank
+ FROM tba.event_rankings er
+ INNER JOIN tba.oprs o ON (er.team_number = o.team_number AND er.event_key = o.event_key)
+ """).df()
 
-# ranking_df = get_oprs_and_ranks_for_event(selected_event)
-# ranking_df = duckdb.query("SELECT *, RANK() OVER (ORDER BY opr DESC) as expected_rank FROM ranking_df").df()
+ ranking_df = get_oprs_and_ranks_for_event(selected_event)
+ ranking_df = duckdb.query("SELECT *, RANK() OVER (ORDER BY opr DESC) as expected_rank FROM ranking_df").df()
 
 team = st.selectbox("Team Number", team_list, format_func=lambda team: str(team))
 
-# if team is not None:
-#     # team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin([selected_event]))]
-#     team_ranking = ranking_df[(ranking_df['team_number'] == team)]
-#     if not team_ranking.empty:
+ if team is not None:
+     # team_ranking = ranking_df[(ranking_df['team_number'] == team) & (ranking_df['event_key'].isin([selected_event]))]
+     team_ranking = ranking_df[(ranking_df['team_number'] == team)]
+     if not team_ranking.empty:
 
-#         with st.container(border=True):
-#             st.subheader("Rankings Analysis")
-#             col1, col2, col3 = st.columns(3)
+         with st.container(border=True):
+             st.subheader("Rankings Analysis")
+             col1, col2, col3 = st.columns(3)
 
-#             with col1:
-#                 if pd.notna(team_ranking['opr'].iloc[0]):
-#                     st.metric("OPR", f"{team_ranking['opr'].iloc[0]:.2f}")
-#                 else:
-#                     st.info("No OPR data available")
+             with col1:
+                 if pd.notna(team_ranking['opr'].iloc[0]):
+                     st.metric("OPR", f"{team_ranking['opr'].iloc[0]:.2f}")
+                 else:
+                     st.info("No OPR data available")
+             with col2:
+                 if pd.notna(team_ranking['rank'].iloc[0]):
+                     st.metric("Current Rank", int(team_ranking['rank'].iloc[0]))
+                 else:
+                     st.info("No ranking data available")
 
-#             with col2:
-#                 if pd.notna(team_ranking['rank'].iloc[0]):
-#                     st.metric("Current Rank", int(team_ranking['rank'].iloc[0]))
-#                 else:
-#                     st.info("No ranking data available")
-
-#             with col3:
-#                 if pd.notna(team_ranking['rank'].iloc[0]) and pd.notna(team_ranking['expected_rank'].iloc[0]):
-#                     rank_diff = int(team_ranking['rank'].iloc[0]) - int(team_ranking['expected_rank'].iloc[0])
-#                     status = "Underranked" if rank_diff > 0 else "Overranked" if rank_diff < 0 else "Accurately ranked"
-#                     delta = rank_diff
-#                     st.metric("Ranking Status", status, delta=f"{delta} positions")
-#                 else:
-#                     st.info("Cannot calculate ranking difference")
-#     else:
-#         st.info("No ranking info")
+             with col3:
+                 if pd.notna(team_ranking['rank'].iloc[0]) and pd.notna(team_ranking['expected_rank'].iloc[0]):
+                     rank_diff = int(team_ranking['rank'].iloc[0]) - int(team_ranking['expected_rank'].iloc[0])
+                     status = "Underranked" if rank_diff > 0 else "Overranked" if rank_diff < 0 else "Accurately ranked"
+                     delta = rank_diff
+                     st.metric("Ranking Status", status, delta=f"{delta} positions")
+                 else:
+                     st.info("Cannot calculate ranking difference")
+     else:
+         st.info("No ranking info")
 
     
-# avg_coral_df = con.sql("""SELECT 
-#     m.team_number,
-#     AVG(m.auto_coral_level_1) AS avg_auto_coral_level_1,
-#     AVG(m.auto_coral_level_2) AS avg_auto_coral_level_2,
-#     AVG(m.auto_coral_level_3) AS avg_auto_coral_level_3,
-#     AVG(m.auto_coral_level_4) AS avg_auto_coral_level_4,
-#     AVG(m.coral_level_1) AS avg_teleop_coral_level_1,
-#     AVG(m.coral_level_2) AS avg_teleop_coral_level_2,
-#     AVG(m.coral_level_3) AS avg_teleop_coral_level_3,
-#     AVG(m.coral_level_4) AS avg_teleop_coral_level_4
-# FROM scouting.matches m
-# GROUP BY m.team_number
-# ORDER BY m.team_number;""").df()
+ avg_coral_df = con.sql("""SELECT 
+     m.team_number,
+     AVG(m.auto_coral_level_1) AS avg_auto_coral_level_1,
+     AVG(m.auto_coral_level_2) AS avg_auto_coral_level_2,
+     AVG(m.auto_coral_level_3) AS avg_auto_coral_level_3,
+     AVG(m.auto_coral_level_4) AS avg_auto_coral_level_4,
+     AVG(m.coral_level_1) AS avg_teleop_coral_level_1,
+     AVG(m.coral_level_2) AS avg_teleop_coral_level_2,
+     AVG(m.coral_level_3) AS avg_teleop_coral_level_3,
+     AVG(m.coral_level_4) AS avg_teleop_coral_level_4
+ FROM scouting.matches m
+ GROUP BY m.team_number
+ ORDER BY m.team_number;""").df()
 
-# avg_coral_df = add_zscores(avg_coral_df, avg_coral_df.columns[1:])
+ avg_coral_df = add_zscores(avg_coral_df, avg_coral_df.columns[1:])
 
-# avg_coral_df = avg_coral_df[avg_coral_df['team_number'] == team]
+ avg_coral_df = avg_coral_df[avg_coral_df['team_number'] == team]
 
-# if not avg_coral_df.empty:
-#     # Extract auto and teleop z-scores for levels 1–4 as lists.
-#     auto_vals = avg_coral_df[["avg_auto_coral_level_1_z",
-#                               "avg_auto_coral_level_2_z",
-#                               "avg_auto_coral_level_3_z",
-#                               "avg_auto_coral_level_4_z"]].iloc[0].tolist()
+ if not avg_coral_df.empty:
+     # Extract auto and teleop z-scores for levels 1–4 as lists.
+     auto_vals = avg_coral_df[["avg_auto_coral_level_1_z",
+                               "avg_auto_coral_level_2_z",
+                               "avg_auto_coral_level_3_z",
+                               "avg_auto_coral_level_4_z"]].iloc[0].tolist()
     
-#     teleop_vals = avg_coral_df[["avg_teleop_coral_level_1_z",
-#                                 "avg_teleop_coral_level_2_z",
-#                                 "avg_auto_coral_level_3_z",
-#                                 "avg_teleop_coral_level_4_z"]].iloc[0].tolist()
+     teleop_vals = avg_coral_df[["avg_teleop_coral_level_1_z",
+                                 "avg_teleop_coral_level_2_z",
+                                 "avg_auto_coral_level_3_z",
+                                 "avg_teleop_coral_level_4_z"]].iloc[0].tolist()
     
-#     # Create a new DataFrame with index as levels "L1" to "L4" and columns "Auto" and "Teleop"
-#     coral_table = pd.DataFrame({
-#         "Auto": auto_vals,
-#         "Teleop": teleop_vals
-#     }, index=["L1", "L2", "L3", "L4"])
-#     st.subheader("Coral ZScores")
-#     st.dataframe(coral_table)
-# else:
-#     st.info("No coral data available for this team.")
+     # Create a new DataFrame with index as levels "L1" to "L4" and columns "Auto" and "Teleop"
+     coral_table = pd.DataFrame({
+         "Auto": auto_vals,
+         "Teleop": teleop_vals
+     }, index=["L1", "L2", "L3", "L4"])
+     st.subheader("Coral ZScores")
+     st.dataframe(coral_table)
+ else:
+     st.info("No coral data available for this team.")
 
 
 if team is not None:
