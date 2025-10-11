@@ -9,7 +9,7 @@ from pages_util.event_selector import event_selector
 import math
 
 st.title("Pit Scouting Form")
-selected_event = event_selector()
+selected_event = event_selector()  #calls get_event_list
 all_teams = get_team_list(selected_event)
 existing_teams = con.sql("SELECT DISTINCT team_number FROM scouting.pit").df()['team_number'].tolist()
 
